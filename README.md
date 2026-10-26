@@ -213,4 +213,6 @@ Found a security problem? Please open a private security advisory on GitHub inst
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+Copyright (C) 2026 Sajon Shrestha. Released under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
+
+In plain words: you can read, run and change this code. If you run a changed version as an online service, you must share your changes under the same licence. If you want to use PASAL in a way this licence does not allow, contact me and we can talk about a separate licence.
