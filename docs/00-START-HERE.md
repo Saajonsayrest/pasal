@@ -18,14 +18,16 @@ Built from zero in this folder. Nothing is copied from the old `pasal` Flutter a
 |------|--------|
 | Backend | Laravel 13, PHP 8.5, Sanctum tokens |
 | Database | PostgreSQL 18, database name `pasal` |
-| Phone app | Flutter (version checked when we start it) |
+| Phone app | Flutter 3.47 (`mobile/`) |
+| Website | Svelte 5 and Vite (`web/`) |
 
 ## Folders
 
 ```
 pasal-fullstack/
   backend/   Laravel API
-  mobile/    Flutter app
+  web/       Svelte website
+  mobile/    Flutter phone app
   docs/      these notes
 ```
 

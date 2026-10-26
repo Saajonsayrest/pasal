@@ -24,13 +24,23 @@ After login the app reads `role` and `business` and builds its menu from them. S
 | Client | Needs | Status |
 |--------|-------|--------|
 | Phone | Token login, all endpoints | ready |
-| Website | CORS origin in `PASAL_CORS_ORIGINS`, HTTPS, cookie-login decision | open |
+| Website | Local: nothing (Vite forwards `/api`). Hosted: CORS origin in `PASAL_CORS_ORIGINS`, HTTPS, cookie-login decision | open for hosting |
 | Mac | Token login, all endpoints | ready |
 
-## Build order
+## Build order and state
 
-1. Phone: login, items list, new sale, customer credit, VAT summary.
-2. Svelte web: same screens, plus reports and VAT filings (bigger screen, tables).
-3. Tauri: wrap the web build, move the token to the Keychain through a Rust command.
+1. Phone (`mobile/`): built, every screen from the plan, tested with fake API answers. Not yet run on a real device against the API.
+2. Svelte web (`web/`): built, the same screens plus tables on wide screens. Unit tests and a mount test for every screen pass. Not yet clicked through in a browser against the API.
+3. Tauri: wrap the web build, move the token to the Keychain through a Rust command. Not started.
+
+Both apps keep the same screen numbers (A1 to J6) and the same paths (`/customers/:id`, `/sales/:id/bill`), so a change in one is easy to copy to the other.
+
+## Token storage
+
+| Client | Where the token lives |
+|--------|-----------------------|
+| Phone | Keychain or Keystore (`flutter_secure_storage`). The last known user (name and role, no secret) is cached so the app opens on a weak connection |
+| Website | `sessionStorage`: survives a refresh, gone when the tab closes. Not in `localStorage`, never in a URL |
+| Mac | Planned: Keychain through Rust |
 
 Package and tool versions are checked on the official sites on the day each client starts.

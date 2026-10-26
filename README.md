@@ -4,7 +4,7 @@ PASAL is a stock and money system for small shops in Nepal. It tracks what is on
 
 I built it for our own family business first. Then I made it work for many shops at once, each one fully separate from the others.
 
-**Where it stands today:** the backend API is finished and tested (51 routes, 84 automatic tests). The Flutter phone app is next. The website and the Mac app come after that. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open.
+**Where it stands today:** the backend API is finished and tested (67 routes, 163 automatic tests). The Svelte website and the Flutter phone app both have every screen from the plan, built against that API. Both run on a local computer only. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open. The Mac app comes later.
 
 ## What it does
 
@@ -20,8 +20,8 @@ I built it for our own family business first. Then I made it work for many shops
 ```mermaid
 flowchart LR
     subgraph Clients
-        P[Flutter phone app<br/>next]
-        W[Svelte website<br/>planned]
+        P[Flutter phone app<br/>mobile/]
+        W[Svelte website<br/>web/]
         M[Tauri Mac app<br/>planned]
     end
     P -->|Bearer token| API
@@ -130,8 +130,8 @@ The server enforces this. A hidden button in the app is only a convenience.
 |---|---|
 | API | Laravel 13, PHP 8.5, Sanctum tokens |
 | Database | PostgreSQL 18 |
-| Phone app | Flutter |
-| Website | Svelte and Vite (planned) |
+| Phone app | Flutter 3.47, Riverpod 3, go_router |
+| Website | Svelte 5, TypeScript and Vite |
 | Mac app | Tauri around the same Svelte screens (planned) |
 
 Two UI projects (Flutter and Svelte) is the smallest set that covers phone, web and Mac. The reasoning is in [docs/06-clients.md](docs/06-clients.md).
@@ -172,13 +172,48 @@ curl -X POST http://localhost:8000/api/v1/login \
 
 The response holds a token. Send it as `Authorization: Bearer <token>` on every other call.
 
+### A made-up shop to try it with
+
+```bash
+php artisan pasal:demo-shop      # fake shop, owner and staff logins, random passwords printed once
+```
+
+It only runs outside production. Every name, phone number and amount in it is invented.
+
+### The website
+
+Keep `php artisan serve` running, then in a second terminal:
+
+```bash
+cd web
+npm install
+npm run dev                      # http://localhost:5173
+```
+
+The page calls `/api` on its own address and Vite forwards it to Laravel, so no CORS setting is needed on a local computer. More in [web/README.md](web/README.md).
+
+### The phone app
+
+Start an Android emulator or an iOS simulator, keep `php artisan serve` running, then:
+
+```bash
+cd mobile
+./setup.sh s                     # first time: packages (and pods on a Mac)
+./setup.sh a                     # run on Android, or ./setup.sh ios
+```
+
+The Android emulator reaches your computer at `10.0.2.2`, so the default address works without setup. A real phone needs your computer's address in `mobile/config.json`. More in [mobile/README.md](mobile/README.md).
+
+You do not need XAMPP, and nothing else has to stay open. The API (`php artisan serve`) and the database (Postgres.app) are the only two programs the apps talk to. They run on your own computer for now, so the computer must be on while you use the apps. A hosted server removes that need later.
+
 ## Repository layout
 
 ```
 pasal-fullstack/
   backend/   Laravel API
+  web/       Svelte website
+  mobile/    Flutter phone app
   docs/      design notes and the API reference
-  mobile/    Flutter app (not started)
 ```
 
 Inside `backend/`, controllers stay thin. The transactions live in `app/Services`, validation in `app/Http/Requests`, and the JSON shape in `app/Http/Resources`.
@@ -192,12 +227,13 @@ Inside `backend/`, controllers stay thin. The transactions live in `app/Services
 
 ## Roadmap
 
-1. Flutter phone app: login, items, new sale, customer credit, VAT summary.
+1. Try both apps against the demo shop on a real phone and fix what the daily use shows.
 2. Row-level security, hosting with HTTPS, daily backups.
 3. CI that runs the tests and `composer audit`.
 4. Edit and cancel for purchases and expenses. (Sale returns, cancel and safe retries with an idempotency key are done.)
-5. Svelte website, then the Tauri Mac app.
+5. The Tauri Mac app around the website screens.
 6. An OpenAPI file for the API.
+7. Later screens from the plan: purchase returns, expiry dates, a Bluetooth receipt printer.
 
 One open question is the exact IRD monthly return layout. I still need to check the VAT rate and the box names against the live portal form.
 
