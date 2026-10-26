@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BusinessController;
 use App\Http\Controllers\Api\V1\CashBookController;
@@ -7,10 +8,13 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\ItemController;
+use App\Http\Controllers\Api\V1\ItemPhotoController;
 use App\Http\Controllers\Api\V1\LedgerController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReportDetailController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SaleReturnController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
@@ -37,6 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me/password', [AuthController::class, 'changePassword']);
         Route::get('/business', [BusinessController::class, 'show']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
 
         Route::get('/categories', [CategoryController::class, 'index']);
         Route::get('/categories/{category}', [CategoryController::class, 'show']);
@@ -75,6 +80,13 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store']);
 
             Route::get('/reports/summary', [ReportController::class, 'summary']);
+            Route::get('/reports/daily', [ReportDetailController::class, 'daily']);
+            Route::get('/reports/items', [ReportDetailController::class, 'items']);
+            Route::get('/reports/credit-age', [ReportDetailController::class, 'creditAge']);
+            Route::get('/reports/staff', [ReportDetailController::class, 'staff']);
+            Route::get('/activity', [ActivityController::class, 'index']);
+            Route::post('/items/{item}/photo', [ItemPhotoController::class, 'store']);
+            Route::delete('/items/{item}/photo', [ItemPhotoController::class, 'destroy']);
 
             Route::get('/vat/preview', [VatController::class, 'preview']);
             Route::get('/vat/filings', [VatController::class, 'index']);

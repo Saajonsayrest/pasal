@@ -30,6 +30,7 @@ class SaleResource extends JsonResource
             'exempt_amount' => $this->exempt_amount,
             'sold_at' => $this->sold_at?->toIso8601String(),
             'note' => $this->note,
+            'sold_by' => $this->whenLoaded('user', fn () => $this->user?->name),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($line) => [
                 'id' => $line->id,
                 'item_id' => $line->item_id,

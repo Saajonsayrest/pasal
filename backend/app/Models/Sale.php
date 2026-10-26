@@ -30,6 +30,12 @@ class Sale extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    /** Who made the sale. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function returns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);

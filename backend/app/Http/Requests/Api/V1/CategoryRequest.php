@@ -19,6 +19,8 @@ class CategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100', CurrentBusiness::unique('categories', 'name')->ignore($this->route('category'))],
+            'icon' => ['nullable', 'string', 'max:40', 'regex:/^[a-z0-9_]+$/'],
+            'color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ];
     }
 }

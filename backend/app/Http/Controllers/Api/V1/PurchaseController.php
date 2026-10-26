@@ -10,6 +10,7 @@ use App\Services\PurchaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 
 class PurchaseController extends Controller
 {
@@ -18,6 +19,13 @@ class PurchaseController extends Controller
         $purchases = Purchase::with('supplier')
             ->when($request->boolean('unpaid'), fn ($q) => $q->whereColumn('paid', '<', 'total'))
             ->when($request->query('supplier_id'), fn ($q, $id) => $q->where('supplier_id', $id))
+            ->when($request->query('from'), fn ($q, $d) => $q->where('bought_at', '>=', Carbon::parse($d, 'Asia/Kathmandu')->startOfDay()->utc()))
+            ->when($request->query('to'), fn ($q, $d) => $q->where('bought_at', '<=', Carbon::parse($d, 'Asia/Kathmandu')->endOfDay()->utc()))
+            ->when($request->query('search'), function ($q, $term) {
+                $like = '%'.addcslashes($term, '%_\\').'%';
+                $q->where(fn ($w) => $w->where('bill_no', 'ilike', $like)
+                    ->orWhereHas('supplier', fn ($s) => $s->where('name', 'ilike', $like)));
+            })
             ->latest('bought_at')
             ->paginate(min((int) $request->query('per_page', 20), 50));
 

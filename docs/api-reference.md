@@ -312,7 +312,7 @@ There is no edit and no delete for sales. Use a return or a cancel (below).
 | `paid` | optional, default 0. Cannot be more than the total (after the discount) |
 | `customer_id` | **required when `paid` is less than the total** (credit sale). Otherwise optional |
 | `ignore_credit_limit` | optional, owner only. Sell on udhar past the customer's limit |
-| `method`, `bill_no`, `sold_at`, `note` | optional |
+| `method`, `bill_no`, `sold_at`, `note` | optional. Without `bill_no` the server numbers the bill `S-0001`, `S-0002` ... (one counter per business). A number you type is kept as it is |
 
 It is all or nothing. If one line has not enough stock, nothing is saved (422, `errors.quantity`). On success stock goes down, and if `paid > 0` a payment is recorded.
 
@@ -556,14 +556,41 @@ Rules: `period` is a label you choose (max 20, unique, for example `2083-07`). A
 
 ## 9. Not built yet (do not call)
 - Editing or cancelling purchases and expenses. Editing a sale (use a return or a cancel).
-- Item photos, category icon and colour.
-- Report details: sales per day, top items, credit age, staff sales.
-- Notifications and an activity log.
+- Purchase returns, expiry dates, a photo of the paper purchase bill.
 - Public sign-up, billing and plans. A new business is made by the platform owner on the command line.
 - Platform-admin API (list or suspend businesses).
 - Nepali date conversion on the server.
 
+## 9.1 Added in v1.4
+
+**Days in the new reports and filters are shop days (Nepal, UTC+5:45).** `from` and `to` are Nepal calendar dates, both included. (The older `/reports/summary`, `/payments`, `/cash-book` and the VAT dates still cut the day at UTC. This is on the open list.)
+
+### Customers and suppliers now show the money
+- `GET /customers` and `GET /customers/{id}`: each customer also has `owes` (paisa still to collect, after returns), `last_sale_at` and `oldest_unpaid_at` (or `null`). Query: `search` (name or phone), `owes=1`, `paid_up=1`, `over_limit=1`, `sort=name|owed|oldest`, `per_page` (max 50). The list answer also has `summary: { owed_total, owing_customers }` for the whole business.
+- `GET /suppliers` and `GET /suppliers/{id}`: each supplier also has `we_owe` and `last_purchase_at`. Query: `search`, `owed=1`, `per_page`. The list answer has `summary: { owed_total }`.
+- `GET /customers/{id}/ledger` and `GET /suppliers/{id}/ledger` now also return `payments` (the same shape as in a sale, newest first, 200 at most), and each sale or purchase row has `bill_no`.
+
+### Sales and purchases filters
+- `GET /sales` adds `from`, `to` (shop days) and `search` (bill number or customer name). Each sale has `sold_by` (the person's name).
+- `GET /purchases` adds `from`, `to` and `search` (bill number or supplier name).
+
+### Categories and item photos
+- Category: `icon` (a Material Symbols name such as `egg`, letters, digits and `_`, max 40) and `color` (`#rrggbb`), both optional.
+- Item: `photo_url` (or `null`).
+- `POST /items/{id}/photo` (owner): multipart form with the file in `photo`. JPG, PNG or WebP, at most 2 MB. Replaces the old photo. Returns the item. `DELETE /items/{id}/photo` removes it. The file name from the client is never used.
+
+### Report details  (owner, not wrapped)
+- `GET /reports/daily?from&to` gives `days: [{ date, bills, sales }]` (every day in the range, returns taken off on the day they happened), `hours: [{ hour, bills, sales }]` (0 to 23) and `total`, `bills`. At most 400 days.
+- `GET /reports/items?from&to&limit` gives `top` (best sellers by quantity after returns: `item_id, name, unit, quantity, revenue`) and `slow` (in stock but sold least: `item_id, name, unit, in_stock, sold, stock_value`).
+- `GET /reports/credit-age` gives `buckets` (`d0_30`, `d31_60`, `d61_90`, `d90_plus`, each with `bills` and `amount`), `total`, and `customers` (`customer_id, name, phone, owes, oldest_days, bucket`, oldest first).
+- `GET /reports/staff?from&to` gives `data: [{ user_id, name, bills, sales, discount }]`, highest first.
+
+### Notifications and activity
+- `GET /notifications` (everyone) gives `data: [{ type, title, body, at, ... }]`. `type` is `low_stock`, `credit_overdue` (not paid for over 30 days), `vat_unfiled` (owner, a saved period that is not filed) or `staff_added` (owner, joined in the last 7 days). Worked out when asked, no stored read mark. VAT due dates by Nepali month are worked out in the apps.
+- `GET /activity` (owner) gives who did what: `data: [{ kind, ref_id, at, by, label, amount }]`, newest first, 30 per page (`per_page` max 100, `page`, `user_id` filter), with `meta.total`. `kind` is `sale`, `return`, `cancel`, `purchase`, `payment_in`, `payment_out`, `refund`, `expense`, `stock_adjust`, `stock_count` or `vat_filing`.
+
 ## 10. Change log
+- v1.4: sales get an automatic bill number (`S-0001`), customer and supplier balances in the lists, search and filters, ledger payments, sales and purchase date filters, `sold_by`, category icon and colour, item photos, report details (daily, items, credit age, staff), notifications, activity log.
 - v1.3: password reset (`/forgot-password`, `/reset-password`), bill discount on sales, sale returns and cancel, pay by customer or supplier (oldest bills first), customer credit limit, stock count and stock history, payments list, cash book, `Idempotency-Key` for safe retries. Sales now show `subtotal`, `discount`, `returned_total`, `cancelled_at`, and `balance` counts returns. Payments can have `direction: "refund"`.
 - v1: first version.
 - v1.2: item names are reused. `GET /items/suggest`, no duplicate names inside a business, optional SKU, `POST /items/{id}/restore`, `GET /items?trashed=only`, deleting an item with stock is refused. Name errors can carry `existing_item`.

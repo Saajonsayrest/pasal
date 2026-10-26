@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\Sale;
+use App\Support\BillNumber;
 use App\Support\CurrentBusiness;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -76,7 +77,7 @@ class SaleService
                 'sold_at' => $data['sold_at'] ?? now(),
                 'user_id' => $userId,
                 'note' => $data['note'] ?? null,
-                'bill_no' => $data['bill_no'] ?? null,
+                'bill_no' => ($data['bill_no'] ?? null) ?: BillNumber::nextSale(),
             ]);
             $sale->subtotal = $subtotal;
             $sale->discount = $discount;

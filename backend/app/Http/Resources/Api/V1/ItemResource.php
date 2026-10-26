@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ItemResource extends JsonResource
 {
@@ -25,6 +26,7 @@ class ItemResource extends JsonResource
             'quantity' => $this->quantity,
             'low_stock_at' => $this->low_stock_at,
             'is_low_stock' => $this->quantity <= $this->low_stock_at,
+            'photo_url' => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
         ];
     }
 }

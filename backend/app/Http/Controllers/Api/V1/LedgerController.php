@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\CustomerResource;
+use App\Http\Resources\Api\V1\PaymentResource;
 use App\Http\Resources\Api\V1\SupplierResource;
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
@@ -26,9 +28,13 @@ class LedgerController extends Controller
             'owes' => (int) Sale::where('customer_id', $customer->id)->selectRaw('COALESCE(SUM(total - returned_total - paid), 0) AS owes')->value('owes'),
             'credit_limit' => $customer->credit_limit,
             'sales' => $sales->map(fn ($s) => [
-                'id' => $s->id, 'sold_at' => $s->sold_at, 'total' => $s->total, 'returned_total' => $s->returned_total, 'paid' => $s->paid, 'balance' => $s->balance(),
+                'id' => $s->id, 'bill_no' => $s->bill_no, 'sold_at' => $s->sold_at, 'total' => $s->total, 'returned_total' => $s->returned_total, 'paid' => $s->paid, 'balance' => $s->balance(),
                 'cancelled_at' => $s->cancelled_at,
             ]),
+            // Money in and refunds for this customer's bills, newest first (latest 200).
+            'payments' => PaymentResource::collection(
+                Payment::whereHas('sale', fn ($q) => $q->where('customer_id', $customer->id))->latest('paid_at')->limit(200)->get()
+            )->resolve(),
         ]);
     }
 
@@ -43,8 +49,12 @@ class LedgerController extends Controller
             'total_paid' => (int) Purchase::where('supplier_id', $supplier->id)->sum('paid'),
             'we_owe' => (int) Purchase::where('supplier_id', $supplier->id)->selectRaw('COALESCE(SUM(total - paid), 0) AS owes')->value('owes'),
             'purchases' => $purchases->map(fn ($p) => [
-                'id' => $p->id, 'bought_at' => $p->bought_at, 'total' => $p->total, 'paid' => $p->paid, 'balance' => $p->total - $p->paid,
+                'id' => $p->id, 'bill_no' => $p->bill_no, 'bought_at' => $p->bought_at, 'total' => $p->total, 'paid' => $p->paid, 'balance' => $p->total - $p->paid,
             ]),
+            // Money paid to this supplier, newest first (latest 200).
+            'payments' => PaymentResource::collection(
+                Payment::whereHas('purchase', fn ($q) => $q->where('supplier_id', $supplier->id))->latest('paid_at')->limit(200)->get()
+            )->resolve(),
         ]);
     }
 }

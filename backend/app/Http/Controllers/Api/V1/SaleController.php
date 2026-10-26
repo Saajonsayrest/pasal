@@ -10,14 +10,25 @@ use App\Services\SaleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 
 class SaleController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $sales = Sale::with('customer')
+        $request->validate(['from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from']]);
+
+        $sales = Sale::with('customer', 'user:id,name')
             ->when($request->boolean('unpaid'), fn ($q) => $q->whereRaw('paid < total - returned_total'))
             ->when($request->query('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+            // Nepal days, both included (the shop's day, UTC+5:45).
+            ->when($request->query('from'), fn ($q, $d) => $q->where('sold_at', '>=', Carbon::parse($d, 'Asia/Kathmandu')->startOfDay()->utc()))
+            ->when($request->query('to'), fn ($q, $d) => $q->where('sold_at', '<=', Carbon::parse($d, 'Asia/Kathmandu')->endOfDay()->utc()))
+            ->when($request->query('search'), function ($q, $term) {
+                $like = '%'.addcslashes($term, '%_\\').'%';
+                $q->where(fn ($w) => $w->where('bill_no', 'ilike', $like)
+                    ->orWhereHas('customer', fn ($c) => $c->where('name', 'ilike', $like)));
+            })
             ->latest('sold_at')
             ->paginate(min((int) $request->query('per_page', 20), 50));
 
@@ -34,6 +45,6 @@ class SaleController extends Controller
 
     public function show(Sale $sale): SaleResource
     {
-        return new SaleResource($sale->load('items.item', 'customer', 'payments', 'returns.items'));
+        return new SaleResource($sale->load('items.item', 'customer', 'user:id,name', 'payments', 'returns.items'));
     }
 }

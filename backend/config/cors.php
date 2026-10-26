@@ -11,9 +11,10 @@ return [
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['Authorization', 'Content-Type', 'Accept'],
+    // Idempotency-Key is sent by the website on every POST that saves a sale, payment or stock change.
+    'allowed_headers' => ['Authorization', 'Content-Type', 'Accept', 'Idempotency-Key'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['Idempotent-Replayed', 'Retry-After'],
 
     'max_age' => 600,
 
