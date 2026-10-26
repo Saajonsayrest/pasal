@@ -1,10 +1,47 @@
 .DS_Store
+.idea/
+.vscode/
+*.log
+
+# Secrets and credentials
 .env
 .env.*
 !.env.example
-*.log
-.idea/
-.vscode/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.cer
+*.crt
+*.ppk
+*.gpg
+*.asc
+*.kdbx
+id_rsa*
+id_ed25519*
+id_ecdsa*
+auth.json
+credentials.json
+secrets.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+key.properties
+.netrc
+.htpasswd
+.aws/
+.ssh/
+.kube/
+
+# Local databases and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
 
 # Private work notes
 .ai-brain/
