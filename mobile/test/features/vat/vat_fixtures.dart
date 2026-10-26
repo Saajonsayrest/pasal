@@ -1,0 +1,103 @@
+// JSON in the shape the API sends (docs/api-reference.md sections 5 and 6). Fake data only.
+
+Map<String, dynamic> previewJson({int payable = 520000, int carryIn = 0, String carrySource = 'opening value you typed (0 if none)'}) => {
+      'period_from': '2026-10-17',
+      'period_to': '2026-11-16',
+      'due_date': '2026-12-11',
+      'vat_rate': 13.0,
+      'sales_bills': 140,
+      'sales_taxable': 9000000,
+      'sales_exempt': 200000,
+      'output_vat': 1170000,
+      'purchase_bills_with_vat': 12,
+      'purchases_taxable': 5000000,
+      'input_vat': 650000,
+      'carry_in': carryIn,
+      'payable': payable,
+      'carry_out': 0,
+      'carry_in_source': carrySource,
+    };
+
+Map<String, dynamic> filingJson({
+  required int id,
+  required String period,
+  int payable = 520000,
+  int paid = 0,
+  String? filedOn,
+  String periodFrom = '2026-09-17',
+  String periodTo = '2026-10-17',
+  String source = 'computed',
+}) =>
+    {
+      'id': id,
+      'period': period,
+      'period_from': periodFrom,
+      'period_to': periodTo,
+      'source': source,
+      'sales_taxable': 9000000,
+      'sales_exempt': 200000,
+      'output_vat': 1170000,
+      'purchases_taxable': 5000000,
+      'input_vat': 650000,
+      'carry_in': 0,
+      'payable': payable,
+      'carry_out': 0,
+      'filed_on': filedOn,
+      'paid_amount': paid,
+      'paid_on': null,
+      'receipt_no': null,
+      'note': null,
+    };
+
+Map<String, dynamic> saleJson({
+  required int id,
+  required String billNo,
+  required int total,
+  required int taxable,
+  required int vat,
+  int exempt = 0,
+  Map<String, dynamic>? customer,
+  String? cancelledAt,
+  String soldAt = '2026-10-26T07:26:03+00:00',
+}) =>
+    {
+      'id': id,
+      'bill_no': billNo,
+      'customer_id': customer?['id'],
+      'customer': customer,
+      'subtotal': total,
+      'discount': 0,
+      'total': total,
+      'returned_total': 0,
+      'paid': 0,
+      'balance': total,
+      'cancelled_at': cancelledAt,
+      'vat_rate': 13.0,
+      'taxable_amount': taxable,
+      'vat_amount': vat,
+      'exempt_amount': exempt,
+      'sold_at': soldAt,
+      'note': null,
+    };
+
+Map<String, dynamic> purchaseJson({
+  required int id,
+  required String billNo,
+  required int total,
+  required int vat,
+  String billDate = '2026-10-24',
+  Map<String, dynamic>? supplier,
+}) =>
+    {
+      'id': id,
+      'bill_no': billNo,
+      'bill_date': billDate,
+      'supplier_id': supplier?['id'] ?? 1,
+      'supplier': supplier,
+      'total': total,
+      'paid': 0,
+      'balance': total,
+      'vat_amount': vat,
+      'bought_at': '2026-10-26T07:26:03+00:00',
+      'note': null,
+    };
