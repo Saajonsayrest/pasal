@@ -53,6 +53,15 @@ This file is checked against the code in `backend/` and its tests. If code and t
 
 Show the text from `errors` to the user as is. It is written to be read by people.
 
+### Safe retries (Idempotency-Key)
+Send a header `Idempotency-Key: <random text, 8 to 100 letters, digits or . _ : ->` on any POST that saves something (a sale, a payment, a return). A UUID made on the phone for each action is perfect. If the same request arrives again with the same key, the server does not save it a second time. It sends back the first answer, with the header `Idempotent-Replayed: true`.
+
+- Make the key when the user taps the button, and reuse it for every retry of that tap. Make a new key for the next action.
+- The same key with a different body gives 422 on `idempotency_key`.
+- A request that fails (422, 500) does not use up the key, so the retry can use it again.
+- Keys are kept for one day and belong to one business.
+- The header is optional. Without it, every POST is a new action.
+
 ### Your business only
 Every list, record, ledger and report shows only your own business. A record that belongs to another business answers **404**, the same as a record that does not exist. An id from another business inside a request body (an item in a sale, a customer, a supplier, a category) answers **422** on that field. A `business_id` in a request body is ignored.
 
@@ -115,6 +124,12 @@ Same object as `user` in the login response (not wrapped). Use it at app start t
 New password: 10 to 100 characters and different from the old one. Wrong current password: 422 with `errors.current_password`. On success every **other** device is signed out and this one stays signed in. Response `{ "message": "Password changed." }`.
 
 ---
+
+### POST `/forgot-password`  (no token needed)
+Body `{ "email": "owner@example.com" }`. Always answers 200 with the same message, whether the email has an account or not, so nobody can use it to find out who has one. If the account exists, an email goes out with a link. The link opens `PASAL_PASSWORD_RESET_URL` (default `pasal://reset-password`) with `?token=...&email=...` added. Limit: 5 tries a minute per email and address together.
+
+### POST `/reset-password`  (no token needed)
+Body `{ "email": "...", "token": "...", "password": "..." }`. The token comes from the link and works once, for 60 minutes. The password follows the same rules as a new password (10 to 100 characters). On success every phone is signed out, so the person logs in again with the new password. A wrong, used or expired token gives 422 with `errors.token`.
 
 ## 3.1 Business and users
 
@@ -208,6 +223,29 @@ Fix stock by hand (damaged, counted again). Writes a history row.
 `change`: non-zero integer between -1,000,000 and 1,000,000. `note` required (max 255).
 Response 200: the updated item inside `data`. If it would make stock negative: 422 with `errors.quantity`.
 
+### Stock count  POST `/stock-counts`  (owner)
+Walk the shelves, type what you counted, and the system catches up.
+```json
+{ "note": "Month end", "items": [ { "item_id": 7, "counted": 12 }, { "item_id": 8, "counted": 0 } ] }
+```
+1 to 500 items, each item once. `counted` is 0 or more. Response 201:
+```json
+{ "data": [ { "item_id": 7, "item_name": "Rice 5kg", "system": 15, "counted": 12, "difference": -3 } ], "items_changed": 1 }
+```
+It is all or nothing. A history row (`reason: "count"`) is written only for items where the count differs.
+
+### Stock history  GET `/items/{id}/stock-movements`  (owner, not wrapped)
+Every change of one item, newest first, 30 per page (`per_page` max 100).
+```json
+{
+  "item": { "id": 7, "name": "Rice 5kg", "quantity": 12 },
+  "data": [ { "id": 41, "change": -3, "reason": "count", "ref_type": null, "ref_id": null, "note": "Month end", "by": "Sita", "at": "..." } ],
+  "links": { "next": null, "prev": null },
+  "meta": { "current_page": 1, "per_page": 30, "total": 1 }
+}
+```
+`reason` is `sale`, `sale_return`, `sale_cancel`, `purchase`, `adjust` or `count`. `ref_type` is `sale` or `purchase` when the change came from a bill, and `ref_id` is that bill.
+
 ### Suppliers (dealers)  `/suppliers`
 Fields: `id`, `name` (required, max 150), `phone`, `address`, `pan` (max 20), `note` (max 1000). Same five methods as categories (list, create, show, update, delete). List sorted by name, 50 per page.
 
@@ -216,8 +254,10 @@ Fields: `id`, `name` (required, max 150), `phone`, `address`, `pan` (max 20), `n
 ## 5. Finance
 
 ### Customers  `/customers`
-Fields: `id`, `name` (required), `phone`, `address`, `pan`. Same five methods as categories.
+Fields: `id`, `name` (required), `phone`, `address`, `pan`, `credit_limit`. Same five methods as categories.
 A customer is needed for credit sales (udhar). Walk-in cash sales need no customer.
+
+`credit_limit` is the most this customer may owe at one time. `null` means no limit. `0` means cash only. Only the owner can set it (staff get 422). A credit sale that would push what they owe past the limit is refused with 422 on `customer_id`. The owner can still sell past the limit by sending `"ignore_credit_limit": true`.
 
 ### Sales  `/sales`
 Sale response:
@@ -226,17 +266,23 @@ Sale response:
   "data": {
     "id": 31, "bill_no": "S-0031", "customer_id": 4,
     "customer": { "id": 4, "name": "Hari", "phone": "9800000000", "address": null, "pan": null },
-    "total": 11300, "paid": 5000, "balance": 6300,
+    "subtotal": 11300, "discount": 0, "total": 11300, "returned_total": 0,
+    "paid": 5000, "balance": 6300, "cancelled_at": null,
     "vat_rate": 13.0, "taxable_amount": 10000, "vat_amount": 1300, "exempt_amount": 0,
     "sold_at": "2026-10-26T07:26:03+00:00", "note": null,
-    "items": [ { "item_id": 7, "item_name": "Rice 5kg", "quantity": 1, "unit_price": 11300, "line_total": 11300 } ],
-    "payments": [ { "id": 9, "direction": "in", "sale_id": 31, "purchase_id": null, "amount": 5000, "method": "cash", "paid_at": "..." } ]
+    "items": [ { "id": 52, "item_id": 7, "item_name": "Rice 5kg", "quantity": 1, "unit_price": 11300, "discount": 0, "line_total": 11300, "returned_quantity": 0 } ],
+    "payments": [ { "id": 9, "direction": "in", "sale_id": 31, "purchase_id": null, "amount": 5000, "method": "cash", "paid_at": "..." } ],
+    "returns": []
   }
 }
 ```
-`items` and `payments` appear in `GET /sales/{id}` and in the create response (`items` only). The list has `customer` but not `items` or `payments`.
+`items`, `payments` and `returns` appear in `GET /sales/{id}`. The create response has `items`. The list has `customer` but none of these.
 
-How the numbers work: `total` is what the customer pays, VAT included. `vat_amount` is the VAT inside `total` (only for items with `vat_applies = true`). `taxable_amount` is the price of those items without VAT. `exempt_amount` is the no-VAT items. `total = taxable_amount + vat_amount + exempt_amount`. `vat_rate` is saved on the sale, so changing the rate later does not change old sales.
+How the numbers work: `subtotal` is the lines added up. `discount` is the bill discount. `total = subtotal - discount` and is what the customer pays, VAT included. `vat_amount` is the VAT inside `total` (only for items with `vat_applies = true`), worked out after the discount. `taxable_amount` is the price of those items without VAT. `exempt_amount` is the no-VAT items. `total = taxable_amount + vat_amount + exempt_amount`. `vat_rate` is saved on the sale, so changing the rate later does not change old sales.
+
+The bill discount is shared over the lines by price, and each line shows its share in `discount`. `line_total` is after that share. The shares always add up to the discount exactly.
+
+`returned_total` is the value of goods sent back so far. `balance = total - returned_total - paid`. `cancelled_at` is set when every item has been sent back.
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -244,13 +290,14 @@ How the numbers work: `total` is what the customer pays, VAT included. `vat_amou
 | GET | `/sales/{id}` | With lines, customer and payments |
 | POST | `/sales` | 201. See below |
 
-There is no edit and no delete for sales yet.
+There is no edit and no delete for sales. Use a return or a cancel (below).
 
 **POST `/sales`** request
 ```json
 {
   "customer_id": 4,
   "paid": 5000,
+  "discount": 0,
   "method": "cash",
   "bill_no": "S-0031",
   "sold_at": "2026-10-26T13:00:00+05:45",
@@ -261,11 +308,29 @@ There is no edit and no delete for sales yet.
 | Field | Rules |
 |-------|-------|
 | `items` | required, 1 to 100 lines. Each: `item_id` (must exist, not deleted), `quantity` 1 to 1,000,000, `unit_price` optional (default is the item's `sell_price`), 0 to 10,000,000,000 |
-| `paid` | optional, default 0. Cannot be more than the total |
+| `discount` | optional, default 0. Taken off the whole bill. Cannot be more than the subtotal (422, `errors.discount`). Staff can give up to 10% of the subtotal (`PASAL_STAFF_MAX_DISCOUNT_PERCENT`). More needs the owner |
+| `paid` | optional, default 0. Cannot be more than the total (after the discount) |
 | `customer_id` | **required when `paid` is less than the total** (credit sale). Otherwise optional |
+| `ignore_credit_limit` | optional, owner only. Sell on udhar past the customer's limit |
 | `method`, `bill_no`, `sold_at`, `note` | optional |
 
 It is all or nothing. If one line has not enough stock, nothing is saved (422, `errors.quantity`). On success stock goes down, and if `paid > 0` a payment is recorded.
+
+#### Sale return  POST `/sales/{id}/returns`  (owner)
+Goods come back. Send the lines (from `items[].id` of the sale) and how many.
+```json
+{ "items": [ { "sale_item_id": 52, "quantity": 1 } ], "restock": true, "note": "wrong size" }
+```
+`restock` defaults to true. Send `false` for broken goods, which then do not go back on the shelf. You cannot return more than was sold, and the same line twice in one request is added together first.
+
+Response 201:
+```json
+{ "data": { "id": 3, "sale_id": 31, "kind": "return", "returned_at": "...", "total": 11300, "vat_amount": 1300, "refunded": 5000, "restocked": true, "note": "wrong size", "items": [ { "sale_item_id": 52, "quantity": 1, "amount": 11300 } ] }, "sale_balance": 0, "sale_cancelled": false }
+```
+What happens: the customer's debt goes down first. If they had already paid more than the new total, the extra is paid back in cash. That shows in `refunded`, and as a payment with `direction: "refund"`. The sale row itself is not rewritten. A return is its own record and counts in reports and VAT on the day it happened, so a VAT month that is already filed never changes.
+
+#### Sale cancel  POST `/sales/{id}/cancel`  (owner)
+Returns every item that is still with the customer in one step. Body is optional: `{ "restock": true, "note": "customer left" }`. Same response as a return, with `kind: "cancel"` and `sale_cancelled: true`. A cancelled sale gives 422 on a second cancel, and takes no more payments.
 
 ### Purchases  `/purchases`
 ```json
@@ -310,7 +375,31 @@ Response 201:
 ```json
 { "data": { "id": 10, "direction": "in", "sale_id": 31, "purchase_id": null, "amount": 6300, "method": "cash", "paid_at": "..." }, "balance_left": 0 }
 ```
-`direction` is `in` for a sale and `out` for a purchase. It is set by the server. Staff may only send `sale_id`. A staff user who sends `purchase_id` gets 403.
+`direction` is `in` for a sale and `out` for a purchase. It is set by the server. Staff may only send `sale_id` or `customer_id`. A staff user who sends `purchase_id` or `supplier_id` gets 403.
+
+**Pay by customer or supplier.** Instead of one bill, send `customer_id` (money in) or `supplier_id` (money out). The amount pays their oldest unpaid bills first, and one payment row is made for each bill it touches.
+```json
+{ "customer_id": 4, "amount": 1500, "method": "esewa" }
+```
+Response 201: `{ "data": [ { ...payment }, { ...payment } ], "owes_left": 4500 }`. An amount bigger than everything they owe gives 422 on `amount` and saves nothing. Bills that were returned or cancelled are counted after the return.
+
+`direction: "refund"` is money paid back to a customer after a return. The server makes it. You cannot send it.
+
+### Payments list  GET `/payments`  (owner)
+Newest first, 30 per page (`per_page` max 100). Each row has the fields above plus `party`, the customer or supplier name.
+Query: `direction` (`in`, `out`, `refund`), `method`, `from`, `to`, `sale_id`, `purchase_id`, `customer_id`, `supplier_id`.
+
+### Cash book  GET `/cash-book?from=2026-10-01&to=2026-10-31`  (owner, not wrapped)
+Every rupee in and out, in the order it happened, with a running balance. `from` and `to` are required.
+```json
+{
+  "from": "2026-10-01", "to": "2026-10-31",
+  "opening_balance": 5000, "money_in": 1500, "money_out": 3400, "closing_balance": 3100,
+  "data": [ { "kind": "payment_in", "id": 9, "at": "...", "amount": 1500, "method": "esewa", "label": "Hari", "balance": 6500 } ],
+  "meta": { "current_page": 1, "per_page": 50, "total": 4 }
+}
+```
+`kind` is `payment_in`, `payment_out`, `refund` or `expense`. `amount` is negative when money goes out. Money in is customer payments. Money out is refunds, supplier payments and expenses (counted as cash). `opening_balance` is everything before `from`, and `balance` on each row continues from it, also on page 2. Paging: `page`, `per_page` (max 100).
 
 ### Expenses  `/expenses`
 Fields: `id`, `title`, `category`, `amount`, `spent_at`.
@@ -325,11 +414,12 @@ There is no edit and no delete for expenses yet.
 **GET `/customers/{id}/ledger`** - what this customer owes us (udhar).
 ```json
 {
-  "customer": { "id": 4, "name": "Hari", "phone": null, "address": null, "pan": null },
-  "total_sales": 20000, "total_paid": 8000, "owes": 12000,
-  "sales": [ { "id": 31, "sold_at": "2026-10-26T07:26:03.000000Z", "total": 11300, "paid": 5000, "balance": 6300 } ]
+  "customer": { "id": 4, "name": "Hari", "phone": null, "address": null, "pan": null, "credit_limit": 50000 },
+  "total_sales": 20000, "total_paid": 8000, "owes": 12000, "credit_limit": 50000,
+  "sales": [ { "id": 31, "sold_at": "2026-10-26T07:26:03.000000Z", "total": 11300, "returned_total": 0, "paid": 5000, "balance": 6300, "cancelled_at": null } ]
 }
 ```
+`total_sales` and `owes` are after returns, so a cancelled sale counts as nothing.
 **GET `/suppliers/{id}/ledger`** - what we owe this supplier. Same idea with `total_purchases`, `total_paid`, `we_owe` and `purchases` (with `bought_at`). Both show the latest 200 records.
 
 ### Report  GET `/reports/summary?from=2026-10-01&to=2026-10-31`  (not wrapped)
@@ -343,6 +433,7 @@ There is no edit and no delete for expenses yet.
 }
 ```
 `profit = sales_total - vat_collected - cost_of_goods - expenses_total`. It can be negative.
+Returns count on the day they happened. They lower `sales_total` and `vat_collected`. The cost of goods that went back on the shelf is taken out of `cost_of_goods`. Goods marked `restock: false` keep their cost, because that is a real loss.
 `stock_value` (quantity x cost price), `owed_to_us` and `we_owe` are **as of today**, not limited to the date range.
 
 ---
@@ -353,7 +444,7 @@ All amounts are paisa. Dates are AD. The API does **not** convert Nepali months.
 
 ### How the numbers are made
 ```
-output_vat = VAT on sales in the period          (sum of sales.vat_amount)
+output_vat = VAT on sales in the period          (sum of sales.vat_amount, less the VAT of returns made in the period)
 input_vat  = VAT on purchase bills in the period (sum of purchases.vat_amount, by bill_date)
 net        = output_vat - input_vat - carry_in
 net > 0   -> payable = net, carry_out = 0
@@ -416,13 +507,13 @@ Rules: `period` is a label you choose (max 20, unique, for example `2083-07`). A
 
 ---
 
-## 7. Endpoint list (51 routes)
+## 7. Endpoint list (59 routes)
 
 "All" means owner and staff. "Owner" means staff get 403.
 
 | Method | Path | Who |
 |--------|------|-----|
-| POST | `/login` | no token |
+| POST | `/login`, `/forgot-password`, `/reset-password` | no token |
 | POST | `/logout`, `/logout-all`, `/me/password` | all |
 | GET | `/me`, `/business` | all |
 | GET | `/categories`, `/categories/{id}`, `/items`, `/items/suggest`, `/items/{id}` | all |
@@ -430,12 +521,14 @@ Rules: `period` is a label you choose (max 20, unique, for example `2083-07`). A
 | GET | `/customers/{id}/ledger` | all |
 | GET, POST | `/sales` | all |
 | GET | `/sales/{id}` | all |
-| POST | `/payments` | all (staff: sales only) |
+| POST | `/payments` | all (staff: sale_id or customer_id only) |
 | PATCH | `/business` | owner |
 | GET, POST, PATCH, DELETE | `/users`, `/users/{id}` (no single GET) | owner |
 | POST, PUT/PATCH, DELETE | `/categories`, `/items` and their `{id}` | owner |
 | POST | `/items/{id}/restore` | owner |
-| POST | `/stock-adjustments` | owner |
+| POST | `/stock-adjustments`, `/stock-counts` | owner |
+| GET | `/items/{id}/stock-movements`, `/payments`, `/cash-book` | owner |
+| POST | `/sales/{id}/returns`, `/sales/{id}/cancel` | owner |
 | GET, POST, PUT/PATCH, DELETE | `/suppliers`, `/suppliers/{id}` | owner |
 | GET | `/suppliers/{id}/ledger` | owner |
 | GET, POST | `/purchases`, `/expenses` | owner |
@@ -458,18 +551,20 @@ Rules: `period` is a label you choose (max 20, unique, for example `2083-07`). A
 - Never log the token or the password.
 - Use HTTPS in production. Plain HTTP is for local testing only.
 - Money is paisa integers. Do the `/ 100` only for display.
-- Do not retry a POST after a network timeout without first checking with a GET. A repeated sale would be saved twice, because there is no idempotency key yet.
+- Send an `Idempotency-Key` header on every POST that saves money or stock. Then a retry after a network timeout is safe. Without a key, check with a GET before you retry.
 - Show 422 messages as they come.
 
 ## 9. Not built yet (do not call)
-- Editing or cancelling sales, purchases, expenses. Sale returns.
-- Stock history per item. Payments list.
+- Editing or cancelling purchases and expenses. Editing a sale (use a return or a cancel).
+- Item photos, category icon and colour.
+- Report details: sales per day, top items, credit age, staff sales.
+- Notifications and an activity log.
 - Public sign-up, billing and plans. A new business is made by the platform owner on the command line.
 - Platform-admin API (list or suspend businesses).
 - Nepali date conversion on the server.
-- Idempotency keys (safe retries).
 
 ## 10. Change log
+- v1.3: password reset (`/forgot-password`, `/reset-password`), bill discount on sales, sale returns and cancel, pay by customer or supplier (oldest bills first), customer credit limit, stock count and stock history, payments list, cash book, `Idempotency-Key` for safe retries. Sales now show `subtotal`, `discount`, `returned_total`, `cancelled_at`, and `balance` counts returns. Payments can have `direction: "refund"`.
 - v1: first version.
 - v1.2: item names are reused. `GET /items/suggest`, no duplicate names inside a business, optional SKU, `POST /items/{id}/restore`, `GET /items?trashed=only`, deleting an item with stock is refused. Name errors can carry `existing_item`.
 - v1.1: many businesses (each isolated), roles owner and staff, `/users`, `/business`, `/logout-all`, `/me/password`. Login and `/me` now return `role` and `business`. Staff see `cost_price: null`. VAT rate is per business. Login limit is per email and address.

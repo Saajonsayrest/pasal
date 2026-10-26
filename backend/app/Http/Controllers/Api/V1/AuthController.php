@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\PasswordRequest;
+use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Http\Resources\Api\V1\BusinessResource;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -34,6 +39,37 @@ class AuthController extends Controller
         );
 
         return response()->json(['token' => $token->plainTextToken, 'user' => $this->profile($user)]);
+    }
+
+    /**
+     * Sends a reset link to the email. The answer is the same whether the email exists or not,
+     * so nobody can use this to find out who has an account.
+     */
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        Password::sendResetLink(['email' => $request->validated('email')]);
+
+        return response()->json(['message' => 'If this email has an account, a reset link was sent.']);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $status = Password::reset($request->validated(), function (User $user, string $password) {
+            $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
+            $user->tokens()->delete(); // every phone must sign in again with the new password
+            event(new PasswordReset($user));
+        });
+
+        if ($status !== Password::PASSWORD_RESET) {
+            Log::warning('Failed password reset', ['email' => $request->validated('email'), 'ip' => $request->ip(), 'status' => $status]);
+
+            return response()->json([
+                'message' => 'This reset link is wrong or has expired. Ask for a new one.',
+                'errors' => ['token' => ['This reset link is wrong or has expired. Ask for a new one.']],
+            ], 422);
+        }
+
+        return response()->json(['message' => 'Password changed. Sign in with the new password.']);
     }
 
     public function logout(Request $request): JsonResponse

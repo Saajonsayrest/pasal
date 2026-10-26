@@ -18,6 +18,7 @@ class CustomerResource extends JsonResource
             'phone' => $this->phone,
             'address' => $this->address,
             'pan' => $this->pan,
+            'credit_limit' => $this->credit_limit, // null = no limit
         ];
     }
 }

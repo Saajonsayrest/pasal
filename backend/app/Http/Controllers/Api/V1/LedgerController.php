@@ -20,11 +20,14 @@ class LedgerController extends Controller
 
         return response()->json([
             'customer' => (new CustomerResource($customer))->resolve(),
-            'total_sales' => (int) Sale::where('customer_id', $customer->id)->sum('total'),
+            // Totals are after returns, so a cancelled sale counts as nothing.
+            'total_sales' => (int) Sale::where('customer_id', $customer->id)->selectRaw('COALESCE(SUM(total - returned_total), 0) AS v')->value('v'),
             'total_paid' => (int) Sale::where('customer_id', $customer->id)->sum('paid'),
-            'owes' => (int) Sale::where('customer_id', $customer->id)->selectRaw('COALESCE(SUM(total - paid), 0) AS owes')->value('owes'),
+            'owes' => (int) Sale::where('customer_id', $customer->id)->selectRaw('COALESCE(SUM(total - returned_total - paid), 0) AS owes')->value('owes'),
+            'credit_limit' => $customer->credit_limit,
             'sales' => $sales->map(fn ($s) => [
-                'id' => $s->id, 'sold_at' => $s->sold_at, 'total' => $s->total, 'paid' => $s->paid, 'balance' => $s->total - $s->paid,
+                'id' => $s->id, 'sold_at' => $s->sold_at, 'total' => $s->total, 'returned_total' => $s->returned_total, 'paid' => $s->paid, 'balance' => $s->balance(),
+                'cancelled_at' => $s->cancelled_at,
             ]),
         ]);
     }

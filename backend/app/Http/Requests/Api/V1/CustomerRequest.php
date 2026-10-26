@@ -21,6 +21,8 @@ class CustomerRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:255'],
             'pan' => ['nullable', 'string', 'max:20'],
+            // Only the owner decides how much udhar a customer gets.
+            'credit_limit' => $this->user()->isOwner() ? ['nullable', 'integer', 'min:0', 'max:1000000000000000'] : ['prohibited'],
         ];
     }
 }

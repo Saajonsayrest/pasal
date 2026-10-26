@@ -20,6 +20,9 @@ class SaleRequest extends FormRequest
         return [
             'customer_id' => ['nullable', 'integer', CurrentBusiness::exists('customers', 'id', softDeletes: true)],
             'paid' => ['nullable', 'integer', 'min:0', 'max:1000000000000000'],
+            'discount' => ['nullable', 'integer', 'min:0', 'max:1000000000000000'], // off the whole bill, VAT included
+            // Only the owner can sell on udhar past a customer's limit.
+            'ignore_credit_limit' => $this->user()->isOwner() ? ['nullable', 'boolean'] : ['prohibited'],
             'method' => ['nullable', 'string', 'max:20'],
             'sold_at' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:255'],

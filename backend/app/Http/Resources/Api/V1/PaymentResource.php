@@ -20,6 +20,11 @@ class PaymentResource extends JsonResource
             'amount' => $this->amount,
             'method' => $this->method,
             'paid_at' => $this->paid_at?->toIso8601String(),
+            // Who the money came from or went to. Only when the list loads the bills.
+            'party' => $this->when(
+                $this->relationLoaded('sale') || $this->relationLoaded('purchase'),
+                fn () => $this->sale?->customer?->name ?? $this->purchase?->supplier?->name,
+            ),
         ];
     }
 }

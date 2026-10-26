@@ -193,9 +193,9 @@ Inside `backend/`, controllers stay thin. The transactions live in `app/Services
 ## Roadmap
 
 1. Flutter phone app: login, items, new sale, customer credit, VAT summary.
-2. Row-level security, safe retries with an idempotency key, hosting with HTTPS, daily backups.
+2. Row-level security, hosting with HTTPS, daily backups.
 3. CI that runs the tests and `composer audit`.
-4. Edit and cancel for sales, purchases and expenses, plus sale returns.
+4. Edit and cancel for purchases and expenses. (Sale returns, cancel and safe retries with an idempotency key are done.)
 5. Svelte website, then the Tauri Mac app.
 6. An OpenAPI file for the API.
 

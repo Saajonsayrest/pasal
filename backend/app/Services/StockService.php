@@ -14,11 +14,32 @@ use Illuminate\Validation\ValidationException;
  */
 class StockService
 {
+    /**
+     * A stock count: the shelf says $counted, the system says something else. Fix the system.
+     * Writes a "count" history row only when the two differ.
+     *
+     * @return array{system: int, counted: int, difference: int}
+     */
+    public function count(Item $item, int $counted, ?int $userId, ?string $note = null): array
+    {
+        return DB::transaction(function () use ($item, $counted, $userId, $note) {
+            $system = (int) Item::withTrashed()->whereKey($item->id)->lockForUpdate()->firstOrFail()->quantity;
+            $difference = $counted - $system;
+
+            if ($difference !== 0) {
+                $this->move($item, $difference, 'count', $userId, null, $note);
+            }
+
+            return ['system' => $system, 'counted' => $counted, 'difference' => $difference];
+        });
+    }
+
     public function move(Item $item, int $change, string $reason, ?int $userId, ?Model $ref = null, ?string $note = null): StockMovement
     {
         return DB::transaction(function () use ($item, $change, $reason, $userId, $ref, $note) {
             // Lock the row so two sales at once cannot both take the last item.
-            $locked = Item::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            // Withtrashed: goods of a deleted item can still come back in a sale return.
+            $locked = Item::withTrashed()->whereKey($item->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->quantity + $change < 0) {
                 throw ValidationException::withMessages([
