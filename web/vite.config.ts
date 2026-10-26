@@ -8,7 +8,8 @@ const proxy = { '/api': { target: process.env.PASAL_API_URL ?? 'http://localhost
 export default defineConfig({
   plugins: [svelte()],
   server: { port: 5173, proxy },
-  preview: { port: 5173, proxy },
+  // `.trycloudflare.com` lets the temporary Cloudflare test link reach the preview server.
+  preview: { port: 5173, proxy, allowedHosts: ['.trycloudflare.com'] },
   // Tests run Svelte as in a browser (mount needs the browser build of Svelte).
   resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
   test: { environment: 'jsdom', include: ['src/**/*.test.ts'] },
