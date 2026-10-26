@@ -45,6 +45,7 @@ key.properties
 
 # Private work notes
 .ai-brain/
+private/
 NEXT-SESSION.md
 CLAUDE.md
 AGENTS.md

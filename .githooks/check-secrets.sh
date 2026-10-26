@@ -5,7 +5,7 @@
 set -u
 
 # File names that must never be tracked. Matched against the full path.
-BLOCKED_PATHS='(^|/)\.env($|\.)|(^|/)\.ai-brain(/|$)|(^|/)(CLAUDE|AGENTS|NEXT-SESSION)\.md$|\.(pem|key|p12|pfx|jks|keystore|mobileprovision|cer|der|crt|ppk|gpg|asc|kdbx)$|(^|/)id_(rsa|dsa|ecdsa|ed25519)|(^|/)(auth|credentials|secrets?|service-account[^/]*|serviceAccount[^/]*)\.json$|(^|/)google-services\.json$|(^|/)GoogleService-Info\.plist$|(^|/)key\.properties$|(^|/)\.netrc$|(^|/)\.htpasswd$|\.(sqlite|sqlite3|db)$|\.(sql|dump)(\.gz)?$|(^|/)\.(aws|ssh|kube)(/|$)'
+BLOCKED_PATHS='(^|/)\.env($|\.)|(^|/)\.ai-brain(/|$)|(^|/)private(/|$)|(^|/)(CLAUDE|AGENTS|NEXT-SESSION)\.md$|\.(pem|key|p12|pfx|jks|keystore|mobileprovision|cer|der|crt|ppk|gpg|asc|kdbx)$|(^|/)id_(rsa|dsa|ecdsa|ed25519)|(^|/)(auth|credentials|secrets?|service-account[^/]*|serviceAccount[^/]*)\.json$|(^|/)google-services\.json$|(^|/)GoogleService-Info\.plist$|(^|/)key\.properties$|(^|/)\.netrc$|(^|/)\.htpasswd$|\.(sqlite|sqlite3|db)$|\.(sql|dump)(\.gz)?$|(^|/)\.(aws|ssh|kube)(/|$)'
 ALLOWED_PATHS='(^|/)\.env\.example$'
 
 # Content that looks like a real secret.
