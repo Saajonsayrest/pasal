@@ -1,4 +1,4 @@
-import { api, setToken, setUnauthorizedHandler } from './api'
+import { api, ApiError, setToken, setUnauthorizedHandler } from './api'
 import { cart } from './cart.svelte'
 import { forgetToken, isDesktop, loadToken, saveToken } from './token-store'
 import type { Business, User } from './types'
@@ -31,7 +31,9 @@ class Session {
     }
     setToken(saved)
     try {
-      this.user = await api.get<User>('/me')
+      const me = await api.get<User>('/me')
+      if (!me?.role) throw new Error('not a PASAL user')
+      this.user = me
     } catch {
       this.clear()
     } finally {
@@ -41,6 +43,7 @@ class Session {
 
   async login(email: string, password: string): Promise<void> {
     const res = await api.post<{ token: string; user: User }>('/login', { email, password, device_name: isDesktop() ? 'Mac' : 'Website' })
+    if (!res?.token || !res.user?.role) throw new ApiError(502, 'The server did not answer like the PASAL API. Check the server address.')
     setToken(res.token)
     await saveToken(res.token)
     this.user = res.user

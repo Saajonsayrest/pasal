@@ -1,6 +1,13 @@
 import type { Paged } from './types'
+import { isDesktop } from './token-store'
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
+// The browser calls /api on its own address and Vite forwards it. The Mac app has no server behind it,
+// so it needs a full address: set VITE_API_URL when building it, or it uses the API on this computer.
+function base(): string {
+  const set = import.meta.env.VITE_API_URL as string | undefined
+  if (set) return set
+  return isDesktop() ? 'http://localhost:8000/api/v1' : '/api/v1'
+}
 
 export class ApiError extends Error {
   status: number
@@ -71,7 +78,7 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
 
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}${qs(opts.query)}`, { method, headers, body, signal: opts.signal })
+    res = await fetch(`${base()}${path}${qs(opts.query)}`, { method, headers, body, signal: opts.signal })
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e
     throw new ApiError(0, 'Cannot reach the server. Check the connection and try again.')
@@ -79,11 +86,16 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
 
   const text = await res.text()
   let json: Record<string, unknown> = {}
+  let readable = true
   try {
     json = text ? (JSON.parse(text) as Record<string, unknown>) : {}
   } catch {
     json = {}
+    readable = false
   }
+
+  // A web page where JSON should be means the address is not the PASAL API. Never treat it as a good answer.
+  if (res.ok && !readable) throw new ApiError(res.status, 'The server did not answer like the PASAL API. Check the server address.')
 
   if (!res.ok) {
     if (res.status === 401 && token) onUnauthorized()

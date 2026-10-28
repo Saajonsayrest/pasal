@@ -74,8 +74,12 @@ Pure logic (money, dates, cart maths) has unit tests in `src/**/*.test.ts`, run 
 npm run tauri -- dev           # window on the Vite server; needs the API on :8000 like the browser
 cd src-tauri && cargo test     # Keychain logic test
 
-# Release build: bake in the HTTPS API address. The API must list tauri://localhost in PASAL_CORS_ORIGINS.
-VITE_API_URL=https://api.example.com/api/v1 npm run tauri -- build --bundles app
+npm run mac                    # release build that talks to the API on this computer (http://localhost:8000/api/v1)
+
+# Release build for a hosted API: bake in its HTTPS address.
+VITE_API_URL=https://api.example.com/api/v1 npm run mac
 ```
+
+The release app runs from `tauri://localhost`, so the API must allow that origin. In `backend/.env` set `PASAL_CORS_ORIGINS=http://localhost:5173,tauri://localhost` (restart `php artisan serve` after). The app refuses any answer that is not JSON, so a wrong address shows an error instead of an empty screen.
 
 The app lands in `src-tauri/target/release/bundle/macos/PASAL.app`. It is not code signed, so macOS asks before the first open. Signing and notarising need an Apple developer account.
