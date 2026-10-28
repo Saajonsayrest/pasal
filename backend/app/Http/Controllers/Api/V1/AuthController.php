@@ -23,6 +23,11 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->validated('email'))->first();
 
+        // An unknown email costs the same time as a wrong password, so the speed of the answer does not show who has an account.
+        if (! $user) {
+            Hash::make($request->validated('password'));
+        }
+
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
             Log::warning('Failed login', ['email' => $request->validated('email'), 'ip' => $request->ip()]);
 

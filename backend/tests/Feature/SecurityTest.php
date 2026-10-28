@@ -2,6 +2,7 @@
 
 use App\Models\Item;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
 
@@ -47,6 +48,29 @@ it('logs a failed login without writing the password', function () {
     Log::shouldHaveReceived('warning')->once()->withArgs(
         fn ($message, $context) => $message === 'Failed login' && ! in_array('not-the-password', $context, true)
     );
+});
+
+it('takes about as long to refuse an unknown email as a wrong password', function () {
+    Hash::setRounds(10); // slow enough to measure, like a real server
+    $user = User::factory()->create(['password' => 'right-password-1']);
+
+    $median = function (callable $try): float {
+        $times = [];
+        foreach (range(1, 3) as $i) {
+            $start = hrtime(true);
+            $try($i);
+            $times[] = hrtime(true) - $start;
+        }
+        sort($times);
+
+        return $times[1];
+    };
+
+    $known = $median(fn () => $this->postJson('/api/v1/login', ['email' => $user->email, 'password' => 'wrong-password-1'])->assertStatus(422));
+    $unknown = $median(fn ($i) => $this->postJson('/api/v1/login', ['email' => "nobody{$i}@example.com", 'password' => 'wrong-password-1'])->assertStatus(422));
+
+    // Without the dummy hash the unknown email answers in a few milliseconds and the known one in ~50, which tells an attacker who has an account.
+    expect($unknown)->toBeGreaterThan($known * 0.5);
 });
 
 it('stops the sixth login try in a minute', function () {
