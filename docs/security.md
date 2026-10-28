@@ -14,7 +14,8 @@ Threat model in one line: a stranger on the internet tries to read or change a s
 | Staff doing owner work, or seeing profit | `owner` middleware on stock, buying, money, reports, VAT, users and settings. Staff get `cost_price: null` | `BusinessIsolationTest` "limits staff to counter work" |
 | Guessing passwords | 5 login tries a minute per email and address, 30 per address, passwords hashed, minimum 10 characters | `SecurityTest` "stops the sixth login try in a minute" |
 | Stolen or old token | Tokens expire after 30 days. Logout deletes the token. Deleted tokens stop working | `SecurityTest` "rejects a token that was revoked", `AuthTest` "shows the current user and logs out" |
-| Account probing | Same message for wrong email and wrong password. Failed logins are logged without the password | `AuthTest` "rejects a wrong password...", `SecurityTest` "logs a failed login..." |
+| Account probing | Same message for wrong email and wrong password, and the same response time (an unknown email still runs one password hash). Failed logins are logged without the password | `AuthTest` "rejects a wrong password...", `SecurityTest` "logs a failed login...", "takes about as long to refuse an unknown email..." |
+| Staff getting around their limits by calling the API directly | Price, sale date, bill number and credit limit are owner-only fields, and deleting a customer is owner-only | `StaffAbuseTest` (three tests), `BusinessIsolationTest` "limits staff to counter work" |
 | Information leaks | Missing records and wrong methods give a plain JSON message, never class names or stack traces | `SecurityTest` "hides internal class names...", "gives a clean JSON error..." |
 | Browser attacks | Safety headers on every response, and `Cache-Control: no-store` so money data is not cached | `SecurityTest` "sends safety headers and forbids caching" |
 | Other websites calling the API | CORS allows nothing unless the owner lists an address in `PASAL_CORS_ORIGINS` | not tested yet |
@@ -37,5 +38,9 @@ Threat model in one line: a stranger on the internet tries to read or change a s
 8. **CI (mostly done).** The tests, `composer audit` and `npm audit` run on every push, with a full-history secret scan. Dependabot is not turned on yet.
 9. **Platform admin.** Creating, suspending and removing businesses is a command-line job. Nobody should log in as a "super user" through the API.
 10. **Per-business limits.** One noisy business shares the 120-per-minute pool only with its own user, but there is no cap on stored rows per business yet.
+11. **Found in the 2026-10-28 security test, waiting for hosting** (details in `security-test.md`): Android reset link should be an HTTPS App Link, the website needs a Content-Security-Policy, the API must trust the load balancer so the login limit sees real addresses, and the `Dockerfile` must not run `artisan serve` as root.
+11. **Found in the 2026-10-28 security test, waiting for hosting** (details in `security-test.md`): Android reset link should be an HTTPS App Link, the website needs a Content-Security-Policy, the API must trust the load balancer so the login limit sees real addresses, and the `Dockerfile` must not run `artisan serve` as root.
 
 Closed since the first version: per-email login limit, password change, "log out on all devices", removing a user, password reset by email (same answer for unknown emails, one-time token that expires in 60 minutes, all phones signed out after a reset).
+
+See also `docs/security-test.md`, an attack-minded review with the holes found and fixed.

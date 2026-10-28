@@ -84,7 +84,7 @@ From left to right: log in, home, new sale, items, customers, reports, VAT. Pict
 |---|---|
 | API | 67 operations, described in [docs/openapi.json](docs/openapi.json) |
 | Screens | 65 on the website and Mac app. The phone app has the same screens and paths, plus two barcode scanning screens |
-| Automatic tests | 168 backend, 341 website, 361 phone app, plus a Rust test for the Mac app |
+| Automatic tests | 172 backend, 341 website, 361 phone app, plus a Rust test for the Mac app |
 | Checks on every push | Backend tests with PostgreSQL and `composer audit`, website checks and build, phone analyze and tests, Mac app build and test, full-history secret scan |
 | Languages | English, Nepali |
 | Money | whole paisa in `bigint`, no decimals |
@@ -563,7 +563,7 @@ flowchart LR
 Run them yourself:
 
 ```bash
-cd backend && php artisan test          # 168 tests, needs PostgreSQL
+cd backend && php artisan test          # 172 tests, needs PostgreSQL
 cd web && npm test && npm run check     # 341 tests, then the type check
 cd mobile && flutter analyze && flutter test   # 361 tests
 cd web/src-tauri && cargo test          # Keychain logic
@@ -583,6 +583,9 @@ The short version, with the tests that prove each point, is in [docs/security.md
 - Error answers never show class names or stack traces. Money data is sent with `Cache-Control: no-store`.
 - The phone and the Mac app keep the token in the system Keychain or Keystore.
 - `composer audit` and `npm audit` run on every push.
+- Staff sell at the list price, today's date and the server's bill number. Only the owner can change those or delete a customer.
+
+I also attacked my own API as a staff user and as a stranger. Four holes turned up (a staff price override that beat the discount cap, backdated sales, customer deletion, and a login timing leak). Each one has an attack test that failed on the old code and passes now. The method, the proof and the gaps still open are in the [security test report](docs/security-test.md).
 
 What is still open (HTTPS hosting, backups, row-level security, signing the apps) is listed honestly in the [security notes](docs/security.md) and below.
 
@@ -654,7 +657,7 @@ pasal-fullstack/
     app/Support/        CurrentBusiness, ShopDay, BillNumber
     app/Console/        artisan commands: pasal:demo-shop, pasal:add-business, pasal:openapi
     database/           migrations and factories
-    tests/Feature/      isolation, finance, inventory, security and API tests
+    tests/Feature/      isolation, finance, inventory, security, staff-abuse and API tests
   web/                Svelte website
     src/routes/         one file per screen (A1 to J6)
     src/lib/            api, session, router, money, Nepali calendar, i18n
@@ -663,7 +666,7 @@ pasal-fullstack/
   mobile/             Flutter phone app
     lib/core/           network, session, router, theme, storage
     lib/features/       auth, selling, items, customers, suppliers, money, reports, vat, settings
-  docs/               design notes, API reference, OpenAPI file, security notes, screenshots
+  docs/               design notes, API reference, OpenAPI file, security notes and test report, screenshots
   .github/workflows/  CI and the secret scan
   .githooks/          local secret check
 ```
