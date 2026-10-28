@@ -5,7 +5,7 @@
   import { tr, num } from '../lib/i18n'
   import { rs } from '../lib/money'
   import { addDaysAd, bsMonthRange, formatDate, formatDateSub, formatTime, monthTitle, todayAd, todayBs, weekday } from '../lib/bs'
-  import { dueText, loadOrder, nextVat, saveOrder, shortWeekday, type CardKey } from '../lib/home'
+  import { dueText, loadOrder, loneCards, nextVat, saveOrder, shortWeekday, type CardKey } from '../lib/home'
   import { portal } from '../lib/portal'
   import { setTitle } from '../lib/shell.svelte'
   import { initials } from '../lib/util'
@@ -48,6 +48,7 @@
   let order = $state<CardKey[]>(loadOrder())
   let editing = $state(false)
   const FULL: CardKey[] = ['sales', 'week']
+  const lone = $derived(loneCards(order, FULL)) // a card left alone on its row takes the whole row
 
   function move(index: number, by: number): void {
     const target = index + by
@@ -71,7 +72,7 @@
     <a class="btn btn-icon phone-only" href="#/profile" aria-label={tr('Profile', 'प्रोफाइल')}><span class="avatar" style="width:34px;height:34px;font-size:13px">{initials(session.user?.name ?? '')}</span></a>
   </div>
 
-  <p class="muted small" style="margin:-10px 4px 0">{weekday(today)}, {formatDate(today)} · {formatDateSub(today)}</p>
+  <p class="muted small" style="margin:0 4px">{weekday(today)}, {formatDate(today)} · {formatDateSub(today)}</p>
 
   <section class="quick-actions">
     <a href="#/sell"><span class="qa-icon"><span class="ms">add_shopping_cart</span></span><span>{tr('New sale', 'नयाँ बिक्री')}</span></a>
@@ -89,7 +90,7 @@
 
   <div class="grid-2 wide-2">
     {#each order as key, i (key)}
-      <div style:grid-column={FULL.includes(key) ? '1 / -1' : null}>
+      <div class="grid-cell" style:grid-column={FULL.includes(key) || lone.has(key) ? '1 / -1' : null}>
         {#if editing}
           <div class="hstack" style="justify-content:flex-end;gap:6px;margin-bottom:6px">
             <button class="btn btn-icon btn-sm" type="button" aria-label={tr('Move up', 'माथि सार्ने')} disabled={i === 0} onclick={() => move(i, -1)}><span class="ms">arrow_upward</span></button>

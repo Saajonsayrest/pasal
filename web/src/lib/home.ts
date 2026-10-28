@@ -19,6 +19,22 @@ export function loadOrder(): CardKey[] {
   return [...new Set([...known, ...CARD_KEYS])]
 }
 
+/** Cards that would sit alone on a row next to an empty space. They take the whole row instead. */
+export function loneCards(order: CardKey[], full: CardKey[]): Set<CardKey> {
+  const lone = new Set<CardKey>()
+  let open = false // one card is waiting for a partner in the current row
+  order.forEach((key, i) => {
+    if (full.includes(key)) {
+      open = false
+      return
+    }
+    open = !open
+    const next = order[i + 1]
+    if (open && (next === undefined || full.includes(next))) lone.add(key)
+  })
+  return lone
+}
+
 export function saveOrder(order: CardKey[]): void {
   try {
     localStorage.setItem(ORDER_KEY, JSON.stringify(order))
