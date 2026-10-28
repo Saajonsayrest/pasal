@@ -10,14 +10,18 @@ use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
+use App\Support\ShopDay;
 use Illuminate\Http\JsonResponse;
 
 class ReportController extends Controller
 {
     public function summary(ReportRequest $request): JsonResponse
     {
-        $from = $request->date('from')->startOfDay();
-        $to = $request->date('to')->endOfDay();
+        // Nepal days, both included; the stored times are UTC.
+        $fromDate = $request->date('from')->toDateString();
+        $toDate = $request->date('to')->toDateString();
+        $from = ShopDay::start($fromDate);
+        $to = ShopDay::end($toDate);
 
         // Returns count on the day they happened, and take their sales, VAT and cost back out.
         $range = Sale::whereBetween('sold_at', [$from, $to]);
@@ -30,8 +34,8 @@ class ReportController extends Controller
         $expenses = (int) Expense::whereBetween('spent_at', [$from, $to])->sum('amount');
 
         return response()->json([
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
+            'from' => $fromDate,
+            'to' => $toDate,
             'sales_total' => $sales,
             'vat_collected' => $vatCollected,
             'cost_of_goods' => $cost,

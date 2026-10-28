@@ -59,6 +59,19 @@ it('starts a later range with what the earlier days left', function () {
         ->assertJsonPath('data.0.balance', 6500); // running balance continues from the earlier day
 });
 
+it('cuts the day at midnight in Nepal, not midnight UTC', function () {
+    // 19:00 UTC on 1 April is 00:45 on 2 April in Nepal (UTC+5:45).
+    $this->postJson('/api/v1/expenses', ['title' => 'Late rent', 'amount' => 700, 'spent_at' => '2026-04-01 19:00:00'])->assertCreated();
+
+    $this->getJson('/api/v1/cash-book?from=2026-04-01&to=2026-04-01')->assertOk()->assertJsonPath('meta.total', 0);
+    $this->getJson('/api/v1/cash-book?from=2026-04-02&to=2026-04-02')->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('money_out', 700);
+    $this->getJson('/api/v1/reports/summary?from=2026-04-02&to=2026-04-02')->assertOk()
+        ->assertJsonPath('from', '2026-04-02')
+        ->assertJsonPath('expenses_total', 700);
+});
+
 it('counts a refund as money out', function () {
     $item = Item::factory()->create(['quantity' => 10, 'sell_price' => 1000]);
     $saleId = $this->postJson('/api/v1/sales', ['paid' => 3000, 'sold_at' => '2026-04-01 10:00:00', 'items' => [['item_id' => $item->id, 'quantity' => 3]]])->json('data.id');

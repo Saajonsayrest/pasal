@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\ShopDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -41,8 +42,11 @@ class CashBookController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $from = $request->date('from')->startOfDay();
-        $to = $request->date('to')->endOfDay();
+        // Nepal days, both included; the stored times are UTC.
+        $fromDate = $request->date('from')->toDateString();
+        $toDate = $request->date('to')->toDateString();
+        $from = ShopDay::start($fromDate);
+        $to = ShopDay::end($toDate);
         $perPage = (int) $request->query('per_page', 50);
         $page = (int) $request->query('page', 1);
         $ids = ['business_a' => $request->user()->business_id, 'business_b' => $request->user()->business_id];
@@ -69,8 +73,8 @@ class CashBookController extends Controller
         ', $ids + ['from' => $from, 'to' => $to, 'limit' => $perPage, 'offset' => ($page - 1) * $perPage]);
 
         return response()->json([
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
+            'from' => $fromDate,
+            'to' => $toDate,
             'opening_balance' => (int) $totals->opening,
             'money_in' => (int) $totals->money_in,
             'money_out' => (int) $totals->money_out,

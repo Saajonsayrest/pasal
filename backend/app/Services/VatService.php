@@ -7,6 +7,7 @@ use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\VatFiling;
 use App\Support\CurrentBusiness;
+use App\Support\ShopDay;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
@@ -24,8 +25,11 @@ class VatService
      */
     public function preview(CarbonInterface $from, CarbonInterface $to, int $openingCarry = 0): array
     {
-        $start = $from->copy()->startOfDay();
-        $end = $to->copy()->endOfDay();
+        // `from` and `to` are Nepal calendar dates; the stored times are UTC.
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+        $start = ShopDay::start($fromDate);
+        $end = ShopDay::end($toDate);
 
         $sales = Sale::whereBetween('sold_at', [$start, $end])
             ->selectRaw('COALESCE(SUM(taxable_amount),0) AS taxable, COALESCE(SUM(exempt_amount),0) AS exempt, COALESCE(SUM(vat_amount),0) AS vat, COUNT(*) AS bills')
@@ -39,11 +43,11 @@ class VatService
 
         // Input VAT is claimed on the supplier's bill date. If we did not record it, we use the purchase date.
         $purchases = Purchase::where('vat_amount', '>', 0)
-            ->whereRaw('COALESCE(bill_date, bought_at::date) BETWEEN ? AND ?', [$start->toDateString(), $end->toDateString()])
+            ->whereRaw('COALESCE(bill_date, '.ShopDay::local('bought_at').'::date) BETWEEN ? AND ?', [$fromDate, $toDate])
             ->selectRaw('COALESCE(SUM(total - vat_amount),0) AS taxable, COALESCE(SUM(vat_amount),0) AS vat, COUNT(*) AS bills')
             ->first();
 
-        $previous = VatFiling::where('period_to', '<', $start->toDateString())->orderByDesc('period_to')->first();
+        $previous = VatFiling::where('period_to', '<', $fromDate)->orderByDesc('period_to')->first();
         $carryIn = $previous ? (int) $previous->carry_out : $openingCarry;
 
         $output = (int) $sales->vat - (int) $returns->vat;
@@ -51,9 +55,9 @@ class VatService
         $net = $output - $input - $carryIn;
 
         return [
-            'period_from' => $start->toDateString(),
-            'period_to' => $end->toDateString(),
-            'due_date' => Carbon::parse($end)->addDays((int) config('pasal.vat_due_days'))->toDateString(),
+            'period_from' => $fromDate,
+            'period_to' => $toDate,
+            'due_date' => Carbon::parse($toDate)->addDays((int) config('pasal.vat_due_days'))->toDateString(),
             'vat_rate' => (float) CurrentBusiness::business()->vat_rate,
             'sales_bills' => (int) $sales->bills,
             'sales_taxable' => (int) $sales->taxable - (int) $returns->taxable,

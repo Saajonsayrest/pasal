@@ -11,6 +11,7 @@ use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Services\PaymentService;
+use App\Support\ShopDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -34,8 +35,8 @@ class PaymentController extends Controller
         $payments = Payment::with('sale.customer', 'purchase.supplier')
             ->when($request->query('direction'), fn ($q, $v) => $q->where('direction', $v))
             ->when($request->query('method'), fn ($q, $v) => $q->where('method', $v))
-            ->when($request->query('from'), fn ($q, $v) => $q->where('paid_at', '>=', $request->date('from')->startOfDay()))
-            ->when($request->query('to'), fn ($q, $v) => $q->where('paid_at', '<=', $request->date('to')->endOfDay()))
+            ->when($request->query('from'), fn ($q, $v) => $q->where('paid_at', '>=', ShopDay::start($request->date('from')->toDateString())))
+            ->when($request->query('to'), fn ($q, $v) => $q->where('paid_at', '<=', ShopDay::end($request->date('to')->toDateString())))
             ->when($request->query('sale_id'), fn ($q, $v) => $q->where('sale_id', $v))
             ->when($request->query('purchase_id'), fn ($q, $v) => $q->where('purchase_id', $v))
             ->when($request->query('customer_id'), fn ($q, $v) => $q->whereHas('sale', fn ($s) => $s->where('customer_id', $v)))
