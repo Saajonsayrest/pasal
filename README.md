@@ -548,7 +548,7 @@ curl http://localhost:8000/api/v1/reports/summary?from=2026-10-01\&to=2026-10-31
 
 ## Tests and CI
 
-Every push runs these on GitHub:
+CI (continuous integration) means a robot on GitHub builds the code and runs every check on each push and pull request. A red mark shows on the commit if anything fails, so a broken change is seen in minutes. The setup is in [.github/workflows](.github/workflows):
 
 ```mermaid
 flowchart LR
@@ -559,6 +559,18 @@ flowchart LR
     CI --> M["mobile<br/>flutter analyze<br/>flutter test"]
     CI --> D["desktop (macOS)<br/>web build<br/>cargo test"]
 ```
+
+| Job | Runs on | What it checks |
+|-----|---------|----------------|
+| Backend | Ubuntu with a real PostgreSQL 17 | `composer audit` for known package holes, then all 172 tests against a real database. The money rules lean on PostgreSQL CHECK constraints and row locks, so a fake database would prove nothing |
+| Website | Ubuntu, Node 24 | `npm audit` on shipped packages (fails on high), `svelte-check` types, 341 tests, the production build |
+| Phone app | Ubuntu, Flutter stable | `flutter analyze` and 361 tests |
+| Mac app | macOS | the website build and `cargo test` for the Keychain code, which only builds on a Mac |
+| Secret scan | Ubuntu, full git history | the same script as my local pre-commit and pre-push hooks, run on GitHub so `git commit --no-verify` cannot skip it |
+
+The workflow token is read-only (`permissions: contents: read`), so a bad dependency in a job cannot write to the repository.
+
+There is no CD (continuous delivery) yet. Nothing is deployed, because hosting costs money and I have not picked a host. When I do, the plan is one more job that deploys the `Dockerfile` image, and only after every job above is green.
 
 Run them yourself:
 
