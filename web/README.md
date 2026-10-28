@@ -65,3 +65,17 @@ Checks: `npm run check` (types), `npm test` (unit tests).
 ## Tests
 
 Pure logic (money, dates, cart maths) has unit tests in `src/**/*.test.ts`, run with `npm test`.
+
+## Mac app (Tauri)
+
+`src-tauri/` puts this website in a native Mac window. The only native code is three Rust commands that keep the login token in the macOS Keychain (`src/lib/token-store.ts` calls them). Needs Rust (`rustc`) and Xcode command line tools.
+
+```sh
+npm run tauri -- dev           # window on the Vite server; needs the API on :8000 like the browser
+cd src-tauri && cargo test     # Keychain logic test
+
+# Release build: bake in the HTTPS API address. The API must list tauri://localhost in PASAL_CORS_ORIGINS.
+VITE_API_URL=https://api.example.com/api/v1 npm run tauri -- build --bundles app
+```
+
+The app lands in `src-tauri/target/release/bundle/macos/PASAL.app`. It is not code signed, so macOS asks before the first open. Signing and notarising need an Apple developer account.

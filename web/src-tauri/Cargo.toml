@@ -1,0 +1,25 @@
+[package]
+name = "pasal-desktop"
+version = "0.1.0"
+description = "PASAL shop app for Mac. The website screens in a native window."
+license = "AGPL-3.0-only"
+edition = "2021"
+
+[lib]
+name = "pasal_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# The login token lives in the macOS Keychain.
+keyring = { version = "3", features = ["apple-native"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

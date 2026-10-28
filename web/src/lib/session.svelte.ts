@@ -1,11 +1,11 @@
 import { api, setToken, setUnauthorizedHandler } from './api'
 import { cart } from './cart.svelte'
+import { forgetToken, isDesktop, loadToken, saveToken } from './token-store'
 import type { Business, User } from './types'
 
-// The token is kept in sessionStorage: it survives a refresh, and is gone when the tab closes.
-// This is the middle choice from docs/api-reference.md (memory only would log out on every refresh).
+// The token is kept by `token-store.ts`: sessionStorage in a browser (the middle choice from
+// docs/api-reference.md), the macOS Keychain in the Mac app.
 // Never put the token in localStorage, a URL or a log.
-const KEY = 'pasal-token'
 
 class Session {
   user = $state<User | null>(null)
@@ -23,9 +23,12 @@ class Session {
   }
 
   async restore(): Promise<void> {
-    const saved = sessionStorage.getItem(KEY)
-    if (!saved) return
     this.checking = true
+    const saved = await loadToken()
+    if (!saved) {
+      this.checking = false
+      return
+    }
     setToken(saved)
     try {
       this.user = await api.get<User>('/me')
@@ -37,9 +40,9 @@ class Session {
   }
 
   async login(email: string, password: string): Promise<void> {
-    const res = await api.post<{ token: string; user: User }>('/login', { email, password, device_name: 'Website' })
+    const res = await api.post<{ token: string; user: User }>('/login', { email, password, device_name: isDesktop() ? 'Mac' : 'Website' })
     setToken(res.token)
-    sessionStorage.setItem(KEY, res.token)
+    await saveToken(res.token)
     this.user = res.user
   }
 
@@ -55,7 +58,7 @@ class Session {
   /** Forget the token and the user. Used on logout and on any 401. */
   clear(): void {
     setToken(null)
-    sessionStorage.removeItem(KEY)
+    void forgetToken()
     this.user = null
     // Work left on this browser belongs to the shop that just signed out.
     cart.reset()
