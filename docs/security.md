@@ -34,7 +34,7 @@ Threat model in one line: a stranger on the internet tries to read or change a s
 5. **Database-level business separation.** The separation lives in the application. If someone later writes a query that skips the scope (`withoutGlobalScopes`, raw SQL), the database would not stop it. Add PostgreSQL row-level security, or composite foreign keys `(id, business_id)`, before real customers join.
 6. **Website token storage.** A token in the browser can be stolen by injected script. Decide on cookie login before the website goes public.
 7. **Safe retries (mostly done).** POSTs accept an `Idempotency-Key` header and are saved once. The key is optional, so an old client that sends none can still double-save. Make the key required for sales and payments once the Flutter app always sends it.
-8. **CI.** Run the tests and `composer audit` on every push, and turn on Dependabot.
+8. **CI (mostly done).** The tests, `composer audit` and `npm audit` run on every push, with a full-history secret scan. Dependabot is not turned on yet.
 9. **Platform admin.** Creating, suspending and removing businesses is a command-line job. Nobody should log in as a "super user" through the API.
 10. **Per-business limits.** One noisy business shares the 120-per-minute pool only with its own user, but there is no cap on stored rows per business yet.
 
