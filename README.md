@@ -4,7 +4,7 @@ PASAL is a stock and money system for small shops in Nepal. It tracks what is on
 
 I built it for our own family business first. Then I made it work for many shops at once, each one fully separate from the others.
 
-**Where it stands today:** the backend API is finished and tested (67 routes, 163 automatic tests). The Svelte website and the Flutter phone app both have every screen from the plan, built against that API. Both run on a local computer only. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open. The Mac app comes later.
+**Where it stands today:** the backend API is finished and tested (67 routes, 163 automatic tests). The Svelte website and the Flutter phone app both have every screen from the plan, built against that API. Both run on a local computer only. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open. The Mac app (Tauri, around the website screens) builds but I have not opened it yet.
 
 ## What it does
 
@@ -22,7 +22,7 @@ flowchart LR
     subgraph Clients
         P[Flutter phone app<br/>mobile/]
         W[Svelte website<br/>web/]
-        M[Tauri Mac app<br/>planned]
+        M[Tauri Mac app<br/>web/src-tauri/]
     end
     P -->|Bearer token| API
     W -->|Bearer token| API
@@ -132,7 +132,7 @@ The server enforces this. A hidden button in the app is only a convenience.
 | Database | PostgreSQL 18 |
 | Phone app | Flutter 3.47, Riverpod 3, go_router |
 | Website | Svelte 5, TypeScript and Vite |
-| Mac app | Tauri around the same Svelte screens (planned) |
+| Mac app | Tauri around the same Svelte screens, token in the Keychain |
 
 Two UI projects (Flutter and Svelte) is the smallest set that covers phone, web and Mac. The reasoning is in [docs/06-clients.md](docs/06-clients.md).
 
@@ -231,7 +231,7 @@ Inside `backend/`, controllers stay thin. The transactions live in `app/Services
 2. Row-level security, hosting with HTTPS, daily backups.
 3. CI that runs the tests and `composer audit`.
 4. Edit and cancel for purchases and expenses. (Sale returns, cancel and safe retries with an idempotency key are done.)
-5. The Tauri Mac app around the website screens.
+5. Click through the Mac app (`web/src-tauri/`, built, not yet opened) and sign it.
 6. An OpenAPI file for the API.
 7. Later screens from the plan: purchase returns, expiry dates, a Bluetooth receipt printer.
 
