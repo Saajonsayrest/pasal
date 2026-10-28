@@ -77,27 +77,23 @@ class _OwnerHomeState extends ConsumerState<OwnerHome> {
       final first = order[i];
       final pairs = !first.wide && i + 1 < order.length && !order[i + 1].wide;
       if (pairs) {
+        // Both cards of a pair are as tall as the taller one.
         rows.add(
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _slot(order, i)),
-              const SizedBox(width: 12),
-              Expanded(child: _slot(order, i + 1)),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _slot(order, i)),
+                const SizedBox(width: 12),
+                Expanded(child: _slot(order, i + 1)),
+              ],
+            ),
           ),
         );
         i += 2;
-      } else if (first.wide) {
-        rows.add(_slot(order, i));
-        i += 1;
       } else {
-        rows.add(
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Expanded(child: _slot(order, i)), const SizedBox(width: 12), const Expanded(child: SizedBox())],
-          ),
-        );
+        // A wide card, or a card left alone on its row, takes the whole row (no empty space beside it).
+        rows.add(_slot(order, i));
         i += 1;
       }
     }
