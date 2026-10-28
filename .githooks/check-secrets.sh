@@ -6,7 +6,8 @@ set -u
 
 # File names that must never be tracked. Matched against the full path.
 BLOCKED_PATHS='(^|/)\.env($|\.)|(^|/)\.ai-brain(/|$)|(^|/)private(/|$)|(^|/)(CLAUDE|AGENTS|NEXT-SESSION)\.md$|\.(pem|key|p12|pfx|jks|keystore|mobileprovision|cer|der|crt|ppk|gpg|asc|kdbx)$|(^|/)id_(rsa|dsa|ecdsa|ed25519)|(^|/)(auth|credentials|secrets?|service-account[^/]*|serviceAccount[^/]*)\.json$|(^|/)google-services\.json$|(^|/)GoogleService-Info\.plist$|(^|/)key\.properties$|(^|/)\.netrc$|(^|/)\.htpasswd$|\.(sqlite|sqlite3|db)$|\.(sql|dump)(\.gz)?$|(^|/)\.(aws|ssh|kube)(/|$)'
-ALLOWED_PATHS='(^|/)\.env\.example$'
+# The second path is Laravel's own empty placeholder (`*` and `!.gitignore`). It holds no data. Only this exact path.
+ALLOWED_PATHS='(^|/)\.env\.example$|^backend/storage/app/private/\.gitignore$'
 
 # Content that looks like a real secret.
 SECRET_PATTERNS='-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|gh[ousr]_[A-Za-z0-9]{30,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|sk_live_[0-9A-Za-z]{16,}|sk-[A-Za-z0-9]{32,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|APP_KEY=base64:[A-Za-z0-9+/=]{20,}|[a-z]+://[^/[:space:]:@]+:[^/[:space:]@]{4,}@[^/[:space:]]+'
