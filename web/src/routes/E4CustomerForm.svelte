@@ -132,7 +132,7 @@
       <div class="alert bad" style="margin-top:16px"><span class="ms">error</span><div>{save.message}</div></div>
     {/if}
 
-    {#if isEdit}
+    {#if isEdit && session.isOwner}
       <div class="list" style="margin-top:20px">
         <button type="button" class="row" onclick={() => (confirmOpen = true)}>
           <span class="icon-tile bad"><span class="ms">delete</span></span>

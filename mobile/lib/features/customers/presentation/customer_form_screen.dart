@@ -246,7 +246,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
           busy: _busy,
           onPressed: _busy ? null : _save,
         ),
-        if (_isEdit) ...[
+        if (_isEdit && isOwner) ...[
           const SizedBox(height: 20),
           ListCard(
             children: [

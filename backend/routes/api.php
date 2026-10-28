@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/items/suggest', [ItemController::class, 'suggest']);
         Route::get('/items/{item}', [ItemController::class, 'show']);
 
-        Route::apiResource('customers', CustomerController::class);
+        Route::apiResource('customers', CustomerController::class)->except('destroy');
         Route::get('/customers/{customer}/ledger', [LedgerController::class, 'customer']);
 
         Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
@@ -60,6 +60,9 @@ Route::prefix('v1')->group(function () {
             Route::patch('/business', [BusinessController::class, 'update']);
 
             Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
+
+            // Deleting a customer hides their udhar from the lists, so staff cannot do it.
+            Route::apiResource('customers', CustomerController::class)->only('destroy');
 
             Route::apiResource('categories', CategoryController::class)->only(['store', 'update', 'destroy']);
             Route::apiResource('items', ItemController::class)->only(['store', 'update', 'destroy']);

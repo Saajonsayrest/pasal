@@ -1131,6 +1131,8 @@
                 "tags": [
                     "Customers"
                 ],
+                "description": "Owner only. Staff get 403.",
+                "x-owner-only": true,
                 "security": [
                     {
                         "bearerAuth": []
@@ -1159,6 +1161,16 @@
                     },
                     "401": {
                         "description": "No token, bad token, expired or revoked token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Only the owner can do this",
                         "content": {
                             "application/json": {
                                 "schema": {
