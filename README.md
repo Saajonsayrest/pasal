@@ -560,13 +560,15 @@ flowchart LR
     CI --> D["desktop (macOS)<br/>web build<br/>cargo test"]
 ```
 
-| Job | Runs on | What it checks |
-|-----|---------|----------------|
-| Backend | Ubuntu with a real PostgreSQL 17 | `composer audit` for known package holes, then all 172 tests against a real database. The money rules lean on PostgreSQL CHECK constraints and row locks, so a fake database would prove nothing |
-| Website | Ubuntu, Node 24 | `npm audit` on shipped packages (fails on high), `svelte-check` types, 341 tests, the production build |
-| Phone app | Ubuntu, Flutter stable | `flutter analyze` and 361 tests |
-| Mac app | macOS | the website build and `cargo test` for the Keychain code, which only builds on a Mac |
-| Secret scan | Ubuntu, full git history | the same script as my local pre-commit and pre-push hooks, run on GitHub so `git commit --no-verify` cannot skip it |
+| Job | What it checks |
+|-----|----------------|
+| Backend | `composer audit` for known package holes, then all 172 tests against a real PostgreSQL 17 database. The money rules lean on PostgreSQL CHECK constraints and row locks, so a fake database would prove nothing |
+| Website | `npm audit` on shipped packages (fails on high), `svelte-check` types, 341 tests, the production build |
+| Phone app | `flutter analyze` and 361 tests |
+| Mac app | the website build and `cargo test` for the Keychain code |
+| Secret scan | the full git history, with the same script as my local pre-commit and pre-push hooks. It runs on GitHub so `git commit --no-verify` cannot skip it |
+
+All jobs run on GitHub's computers, not on mine.
 
 The workflow token is read-only (`permissions: contents: read`), so a bad dependency in a job cannot write to the repository.
 
