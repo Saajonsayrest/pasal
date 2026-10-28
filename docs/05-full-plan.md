@@ -12,7 +12,7 @@
 3. Inventory: migrations, models, CRUD, stock movements. Tests.
 4. Finance: sales and purchases as transactions, payments, expenses, ledgers. Tests.
 5. Reports endpoint. Tests.
-6. OpenAPI file `docs/openapi.yaml`.
+6. OpenAPI file `docs/openapi.json` (done, made by `php artisan pasal:openapi`).
 7. Flutter app in `mobile/`: login, items, new sale, customer credit, reports.
 8. Git: small commits, one feature per branch, tests must pass.
 

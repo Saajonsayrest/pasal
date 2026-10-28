@@ -4,7 +4,7 @@ PASAL is a stock and money system for small shops in Nepal. It tracks what is on
 
 I built it for our own family business first. Then I made it work for many shops at once, each one fully separate from the others.
 
-**Where it stands today:** the backend API is finished and tested (67 routes, 163 automatic tests). The Svelte website and the Flutter phone app both have every screen from the plan, built against that API. Both run on a local computer only. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open. The Mac app (Tauri, around the website screens) builds but I have not opened it yet.
+**Where it stands today:** the backend API is finished and tested (67 routes, 168 automatic tests). The Svelte website and the Flutter phone app both have every screen from the plan, built against that API. Both run on a local computer only. Nothing here is deployed yet, and I say so on purpose. The [security notes](docs/security.md) list what is still open. The Mac app (Tauri, around the website screens) builds but I have not opened it yet.
 
 ## What it does
 
@@ -221,6 +221,7 @@ Inside `backend/`, controllers stay thin. The transactions live in `app/Services
 ## Docs
 
 - [API reference](docs/api-reference.md): every endpoint, with request and response examples.
+- [OpenAPI file](docs/openapi.json): all 67 operations with their inputs, made from the real routes and validation rules by `php artisan pasal:openapi`. A test fails if it goes out of date. Open it in Swagger Editor or Redoc.
 - [Security notes](docs/security.md): what is protected, what is tested, what is still open.
 - [Architecture](docs/01-architecture.md) and [database](docs/02-database.md).
 - [Full plan](docs/05-full-plan.md) and [clients](docs/06-clients.md).
@@ -232,8 +233,7 @@ Inside `backend/`, controllers stay thin. The transactions live in `app/Services
 3. CI that runs the tests and `composer audit`.
 4. Edit and cancel for purchases and expenses. (Sale returns, cancel and safe retries with an idempotency key are done.)
 5. Click through the Mac app (`web/src-tauri/`, built, not yet opened) and sign it.
-6. An OpenAPI file for the API.
-7. Later screens from the plan: purchase returns, expiry dates, a Bluetooth receipt printer.
+6. Later screens from the plan: purchase returns, expiry dates, a Bluetooth receipt printer.
 
 One open question is the exact IRD monthly return layout. I still need to check the VAT rate and the box names against the live portal form.
 
