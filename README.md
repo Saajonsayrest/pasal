@@ -462,7 +462,7 @@ erDiagram
     }
     IDEMPOTENCY_KEYS {
         bigint id PK
-        varchar key "unique per business"
+        varchar request_key "the column is named key, unique per business"
         varchar request_hash
         text body
     }
