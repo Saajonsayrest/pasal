@@ -43,6 +43,6 @@
   {/if}
 
   {#if from && to}
-    <p class="small muted" style="margin:-4px 4px 0">{tr(`${formatDate(from)} to ${formatDate(to)}`, `${formatDate(from)} देखि ${formatDate(to)} सम्म`)}</p>
+    <p class="small muted" style="margin:-4px 0 0">{tr(`${formatDate(from)} to ${formatDate(to)}`, `${formatDate(from)} देखि ${formatDate(to)} सम्म`)}</p>
   {/if}
 </div>

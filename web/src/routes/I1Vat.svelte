@@ -53,7 +53,7 @@
 
 <div class="page">
   <MonthNav bind:year bind:month />
-  <p class="small muted" style="margin:-6px 4px 0">{formatDate(range.from)} {tr('to', 'सम्म')} {formatDate(range.to)}</p>
+  <p class="small muted" style="margin:-6px 0 0">{formatDate(range.from)} {tr('to', 'सम्म')} {formatDate(range.to)}</p>
 
   {#if preview.error}
     <ErrorCard error={preview.error} retry={preview.reload} />

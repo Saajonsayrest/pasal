@@ -72,7 +72,7 @@
     <a class="btn btn-icon phone-only" href="#/profile" aria-label={tr('Profile', 'प्रोफाइल')}><span class="avatar" style="width:34px;height:34px;font-size:13px">{initials(session.user?.name ?? '')}</span></a>
   </div>
 
-  <p class="muted small" style="margin:0 4px">{weekday(today)}, {formatDate(today)} · {formatDateSub(today)}</p>
+  <p class="muted small" style="margin:0">{weekday(today)}, {formatDate(today)} · {formatDateSub(today)}</p>
 
   <section class="quick-actions">
     <a href="#/sell"><span class="qa-icon"><span class="ms">add_shopping_cart</span></span><span>{tr('New sale', 'नयाँ बिक्री')}</span></a>

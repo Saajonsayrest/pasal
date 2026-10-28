@@ -158,8 +158,10 @@ button { cursor: pointer; }
   flex-direction: column;
 }
 .shell { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.main-col { flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; }
-.page { padding: 4px 16px 32px; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.main-col { --page-w: 1180px; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; }
+.main-col:has(.page.narrow) { --page-w: 640px; }
+.page { padding: 4px 16px 32px; max-width: var(--page-w, 1180px); margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+/* The page is centered. The top bar keeps its title on the same left edge as the page content, even on a wide screen. */
 .page.narrow { max-width: 640px; }
 /* The first thing on a page sits right under the sticky top bar. A negative top margin would slide it beneath the bar and cut the text. */
 .page > :first-child { margin-top: 0 !important; }
@@ -174,7 +176,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 8px;
   min-height: 60px;
-  padding: 8px 12px 8px 16px;
+  padding: 8px max(12px, calc((100% - var(--page-w)) / 2 + 12px)) 8px max(16px, calc((100% - var(--page-w)) / 2 + 16px));
   background: color-mix(in oklab, var(--bg) 88%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -263,7 +265,7 @@ button { cursor: pointer; }
   .shell { flex-direction: row; }
   .side-nav { display: flex; }
   .bottom-nav { display: none; }
-  .topbar { padding: 14px 28px; min-height: 72px; }
+  .topbar { padding: 14px max(28px, calc((100% - var(--page-w)) / 2 + 28px)); min-height: 72px; }
   .topbar .title { font-size: 24px; }
   .page { padding: 4px 28px 40px; gap: 20px; }
   .phone-only { display: none !important; }
