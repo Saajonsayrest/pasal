@@ -7,10 +7,10 @@ use App\Http\Requests\Api\V1\PurchaseRequest;
 use App\Http\Resources\Api\V1\PurchaseResource;
 use App\Models\Purchase;
 use App\Services\PurchaseService;
+use App\Support\ShopDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Carbon;
 
 class PurchaseController extends Controller
 {
@@ -19,8 +19,8 @@ class PurchaseController extends Controller
         $purchases = Purchase::with('supplier')
             ->when($request->boolean('unpaid'), fn ($q) => $q->whereColumn('paid', '<', 'total'))
             ->when($request->query('supplier_id'), fn ($q, $id) => $q->where('supplier_id', $id))
-            ->when($request->query('from'), fn ($q, $d) => $q->where('bought_at', '>=', Carbon::parse($d, 'Asia/Kathmandu')->startOfDay()->utc()))
-            ->when($request->query('to'), fn ($q, $d) => $q->where('bought_at', '<=', Carbon::parse($d, 'Asia/Kathmandu')->endOfDay()->utc()))
+            ->when($request->query('from'), fn ($q, $d) => $q->where('bought_at', '>=', ShopDay::start($d)))
+            ->when($request->query('to'), fn ($q, $d) => $q->where('bought_at', '<=', ShopDay::end($d)))
             ->when($request->query('search'), function ($q, $term) {
                 $like = '%'.addcslashes($term, '%_\\').'%';
                 $q->where(fn ($w) => $w->where('bill_no', 'ilike', $like)

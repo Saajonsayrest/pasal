@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
+use App\Support\ShopDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,12 +23,12 @@ use Illuminate\Support\Facades\DB;
  */
 class ReportDetailController extends Controller
 {
-    private const ZONE = 'Asia/Kathmandu';
+    private const ZONE = ShopDay::ZONE;
 
     /** The same moment as the stored UTC timestamp, written in shop time. */
     private function local(string $column): string
     {
-        return "((({$column}) AT TIME ZONE 'UTC') AT TIME ZONE '".self::ZONE."')";
+        return ShopDay::local($column);
     }
 
     /** @return array{0: Carbon, 1: Carbon} UTC start and end of the Nepal days */
