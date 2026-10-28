@@ -21,6 +21,8 @@ async function open(hash: string): Promise<HTMLElement> {
   app = mount(App, { target: document.getElementById('root')! })
   flushSync()
   await wait()
+  // The screen file loads on demand. A slow machine needs longer than one short wait, so wait for the placeholder to go.
+  for (let i = 0; i < 100 && document.querySelector('#root .skeleton'); i++) await wait(30)
   flushSync()
   return document.getElementById('root')!
 }
